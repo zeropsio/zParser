@@ -1,0 +1,47 @@
+project:
+  name: yaml parser test
+services:
+  - hostname: "{$generateRandomString(20)}"
+    envVariables:
+      NORMAL_ENV: ${MY_COOL_ENV}
+      NORMAL_ENV_IN_QUOTES: "${MY_COOL_QUOTED_ENV}"
+
+      ESCAPED_VALUE: "{{MY_ESCAPED_VALUE}}"
+      ESCAPED_VALUE_DOUBLE: "{{{MY_ESCAPED_VALUE}}}"
+
+      MULTI_LINE_STRING: "{{ ESC \
+       apEd \
+       Multi L \
+       ine
+       STRING 
+       | upper}
+      }"
+
+      ONE_FUNCTION: "{$generateRandomString(20)}"
+      TWO_FUNCTIONS: "{$generateRandomString(20)}{$generateRandomInt(1, 9999)}"
+      NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
+
+      ONE_MODIFIER: "{my super cool string | upper}"
+      TWO_MODIFIERS: "{my super cool string | upper | sha512}"
+
+      TWO_NESTED_STRINGS_WITH_MODIFIER: "{my super { and my nested } cool strings | upper}"
+      TWO_NESTED_STRINGS_WITH_NESTED_MODIFIERS: "{my super { And My NeStED | upper } cool strings}"
+
+      FUNCTION_ONE_MODIFIER: "{$generateRandomString(20) | upper}"
+      FUNCTION_TWO_MODIFIERS: "{$generateRandomString(20) | upper | sha512}"
+
+      NESTED_FUNCTION_ONE_MODIFIER: "{$generateRandomString({$generateRandomInt(10, 50)}) | upper}"
+      NESTED_FUNCTION_TWO_MODIFIERS: "{$generateRandomString({$generateRandomInt(10, 50)}) | upper | sha512}"
+
+      NESTED_FUNCTION_ONE_NESTED_MODIFIER: "{$namedString(myRandomString, {$generateRandomString(20) | upper})}"
+      NESTED_FUNCTION_ONE_NESTED_ONE_NORMAL_MODIFIER: "{$namedString(myAnotherRandomString, {$generateRandomString(20) | upper}) | sha512}"
+
+      EXISTING_STRING: "{$getNamedString(myRandomString)}"
+      EXISTING_STRING_LOWER: "{$getNamedString(myRandomString) | lower}"
+      EXISTING_STRING_ONE_MODIFIER: "{$getNamedString(myRandomString) | sha512}"
+
+      MEGA_NESTED_THING: "{$namedString(megaNestedString, {$generateRandomString({$generateRandomInt({$generateRandomInt(10, 50)}, {$generateRandomInt(51, 100)})})}) | upper}"
+
+      SSH_KEY_PUB: "{$generateEd25519Key(mySshKey)}"
+
+      SSH_KEY_PRIVATE: "{$getNamedString(mySshKeyPrivate)}"
