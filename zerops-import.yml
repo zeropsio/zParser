@@ -45,3 +45,12 @@ services:
       SSH_KEY_PUB: "{$generateEd25519Key(mySshKey)}"
 
       SSH_KEY_PRIVATE: "{$getNamedString(mySshKeyPrivate)}"
+
+      CURRENT_DATE: "{$getDatetime(DD.MM.YYYY)}"
+      CURRENT_DATE_TIME: "{$getDatetime(DD.MM.YYYY HH:mm:ss)}"
+
+      PASSWORD_PLAIN: "{$generateRandomNamedString(myPassword, 30)}"
+      PASSWORD_SHA512: "{$getNamedString(myPassword) | sha512}"
+      PASSWORD_BCRYPT: "{$getNamedString(myPassword) | bcrypt}"
+
+      MERCURY_RETROGRADE: "{$mercuryInRetrograde(mercury is in retrograde, mercury is not in retrograde) | title}"
