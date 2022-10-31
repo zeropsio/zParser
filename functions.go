@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"yamlParser/util"
-
 	"github.com/bykof/gostradamus"
 	"golang.org/x/crypto/ssh"
+
+	"git.vsh-labs.cz/zerops/yaml-parser/util"
 )
 
 type yamlFunction func(param ...string) (string, error)
@@ -33,6 +33,7 @@ func NewYamlFunctions() *YamlFunctions {
 			"generateRandomInt":    generateRandomInt,
 			"mercuryInRetrograde":  mercuryInRetrograde,
 			"getDatetime":          getDatetime,
+			"writeString":          writeString,
 		},
 	}
 
@@ -150,6 +151,13 @@ func getDatetime(param ...string) (string, error) {
 	}
 
 	return gostradamus.Now().Format(param[0]), nil
+}
+
+func writeString(param ...string) (string, error) {
+	if len(param) != 1 {
+		return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
+	}
+	return param[0], nil
 }
 
 func mercuryInRetrograde(param ...string) (string, error) {

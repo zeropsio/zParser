@@ -5,9 +5,12 @@ services:
     envVariables:
       NORMAL_ENV: ${MY_COOL_ENV}
       NORMAL_ENV_IN_QUOTES: "${MY_COOL_QUOTED_ENV}"
+      MULTIPLE_NESTED_ENVS: "${my_e${my_e${my_env}nv}nv}"
 
       ESCAPED_VALUE: "{{MY_ESCAPED_VALUE}}"
       ESCAPED_VALUE_DOUBLE: "{{{MY_ESCAPED_VALUE}}}"
+
+      STRING_WITH_ENV_INSIDE: "{my super cool string with ${myEnvVar} inside for whatever reason | noop}"
 
       MULTI_LINE_STRING: "{{ ESC \
        apEd \
@@ -21,11 +24,19 @@ services:
       TWO_FUNCTIONS: "{$generateRandomString(20)}{$generateRandomInt(1, 9999)}"
       NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
 
-      ONE_MODIFIER: "{my super cool string | upper}"
-      TWO_MODIFIERS: "{my super cool string | upper | sha512}"
+      STRING_ONE_MODIFIER: "{my super cool string | upper}"
+      STRING_TWO_MODIFIERS: "{my super cool string | upper | sha512}"
 
-      TWO_NESTED_STRINGS_WITH_MODIFIER: "{my super { and my nested } cool strings | upper}"
-      TWO_NESTED_STRINGS_WITH_NESTED_MODIFIERS: "{my super { And My NeStED | upper } cool strings}"
+      NESTED_STRINGS_ONE_MODIFIER: "{my super cool { and my nested } strings | upper}"
+      NESTED_STRINGS_ONE_NESTED_MODIFIER: "{my super cool { And My NeStED | upper } strings}"
+
+      WRITE_STRING: "{$writeString({$ some random string $})}"
+      WRITE_STRING_ONE_MODIFIER: "{$writeString({$ some random string $}) | upper}"
+
+      WRITE_STRING_COMPLEX: "{$writeString({$)}generateRandomString(20){$writeString(})}"
+      # modifier should work with space between first 2 braces, but not without it (at that point, it would consider first brace as an escape character)
+      WRITE_STRING_COMPLEX_ONE_MODIFIER: "{ {$writeString({$)}generateRandomString(20){$writeString(})} | upper}"
+      WRITE_STRING_COMPLEX_ONE_MODIFIER_NO_SPACE: "{{$writeString({$)}generateRandomString(20){$writeString(})} | upper}"
 
       FUNCTION_ONE_MODIFIER: "{$generateRandomString(20) | upper}"
       FUNCTION_TWO_MODIFIERS: "{$generateRandomString(20) | upper | sha512}"
@@ -37,14 +48,11 @@ services:
       NESTED_FUNCTION_ONE_NESTED_ONE_NORMAL_MODIFIER: "{$namedString(myAnotherRandomString, {$generateRandomString(20) | upper}) | sha512}"
 
       EXISTING_STRING: "{$getNamedString(myRandomString)}"
-      EXISTING_STRING_LOWER: "{$getNamedString(myRandomString) | lower}"
-      EXISTING_STRING_ONE_MODIFIER: "{$getNamedString(myRandomString) | sha512}"
+      EXISTING_STRING_ONE_MODIFIER: "{$getNamedString(myRandomString) | lower}"
 
-      MEGA_NESTED_THING: "{$namedString(megaNestedString, {$generateRandomString({$generateRandomInt({$generateRandomInt(10, 50)}, {$generateRandomInt(51, 100)})})}) | upper}"
+      QUAD_NESTED_FUNCTIONS: "{$namedString(megaNestedString, {$generateRandomString({$generateRandomInt({$generateRandomInt(10, 50)}, {$generateRandomInt(51, 100)})})}) | upper}"
 
-      SSH_KEY_PUB: "{$generateEd25519Key(mySshKey)}"
-
-      SSH_KEY_PRIVATE: "{$getNamedString(mySshKeyPrivate)}"
+      FUNCTION_WITH_SUPPORTED_CHARS: "{$namedString(questionableString, this is a | totally {{ valid string that }} should just work | without any issues !@#$%^&*_+{{}}:|?><) | upper}"
 
       CURRENT_DATE: "{$getDatetime(DD.MM.YYYY)}"
       CURRENT_DATE_TIME: "{$getDatetime(DD.MM.YYYY HH:mm:ss)}"
@@ -52,5 +60,9 @@ services:
       PASSWORD_PLAIN: "{$generateRandomNamedString(myPassword, 30)}"
       PASSWORD_SHA512: "{$getNamedString(myPassword) | sha512}"
       PASSWORD_BCRYPT: "{$getNamedString(myPassword) | bcrypt}"
+
+      SSH_KEY_PUB: "{$generateEd25519Key(mySshKey)}"
+
+      SSH_KEY_PRIVATE: "{$getNamedString(mySshKeyPrivate)}"
 
       MERCURY_RETROGRADE: "{$mercuryInRetrograde(mercury is in retrograde, mercury is not in retrograde) | title}"

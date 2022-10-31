@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
@@ -21,6 +22,11 @@ func NewYamlModifiers() *YamlModifiers {
 	caser := cases.Title(language.English, cases.NoLower)
 	return &YamlModifiers{
 		modifiers: map[string]modifyFunc{
+			"sha256": func(in string) (string, error) {
+				hash := sha256.New()
+				hash.Write([]byte(in))
+				return hex.EncodeToString(hash.Sum(nil)), nil
+			},
 			"sha512": func(in string) (string, error) {
 				hash := sha512.New()
 				hash.Write([]byte(in))
@@ -40,6 +46,9 @@ func NewYamlModifiers() *YamlModifiers {
 			},
 			"lower": func(in string) (string, error) {
 				return strings.ToLower(in), nil
+			},
+			"noop": func(in string) (string, error) {
+				return in, nil
 			},
 		},
 	}

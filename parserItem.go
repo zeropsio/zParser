@@ -49,16 +49,27 @@ func newYamlParserItemWrap(r rune, parent *yamlParserItemWrap) *yamlParserItemWr
 	return item
 }
 
+func (i *yamlParserItemWrap) IsWriteString() bool {
+	return i != nil && i.name == "writeString" && i.currSection == yamlItemSectionParameters
+}
+
 func (i *yamlParserItemWrap) IsFunction() bool {
-	return i.t == yamlItemTypeFunction
+	return i != nil && i.t == yamlItemTypeFunction
 }
 
 func (i *yamlParserItemWrap) IsString() bool {
-	return i.t == yamlItemTypeString
+	return i != nil && i.t == yamlItemTypeString
 }
 
 func (i *yamlParserItemWrap) ProcessCurrentFunctionSection(r rune) (bool, error) {
 	switch r {
+	case '|':
+		if i.currSection == yamlItemSectionName {
+			return false, errors.New("modifier character is not allowed in a function name")
+		} else if i.currSection == yamlItemSectionParameters {
+			return false, nil
+		}
+		i.currModifier++
 	case '(':
 		// eat (
 		if i.currSection != yamlItemSectionName {
@@ -70,8 +81,7 @@ func (i *yamlParserItemWrap) ProcessCurrentFunctionSection(r rune) (bool, error)
 		if i.currSection != yamlItemSectionParameters {
 			return false, errors.New("closing brace at incorrect place")
 		}
-		// TODO(ms): switching to next section here breaks the code, modifiers switch is handled on first occurrence of |
-		// i.currSection = yamlItemSectionModifiers
+		i.currSection = yamlItemSectionModifiers
 	case ',':
 		if i.currSection != yamlItemSectionParameters {
 			return false, errors.New("comma at incorrect place")
