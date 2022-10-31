@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
@@ -69,7 +71,7 @@ func NewFunctions() *Functions {
 		return val, nil
 	}
 
-	y.functions["generateEd25519Key"] = func(param ...string) (string, error) {
+	y.functions["generateED25519Key"] = func(param ...string) (string, error) {
 		if len(param) != 1 {
 			return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
 		}
@@ -80,6 +82,31 @@ func NewFunctions() *Functions {
 		pemKey := &pem.Block{
 			Type:  "OPENSSH PRIVATE KEY",
 			Bytes: util.MarshalED25519PrivateKey(privKey), // <- marshals ed25519 correctly
+		}
+		privateKey := pem.EncodeToMemory(pemKey)
+		authorizedKey := ssh.MarshalAuthorizedKey(publicKey)
+
+		name := param[0]
+		y.namedValues[name+"Public"] = strings.TrimSpace(string(authorizedKey))
+		y.namedValues[name+"Private"] = strings.TrimSpace(string(privateKey))
+
+		return y.namedValues[name+"Public"], nil
+	}
+
+	y.functions["generateRSA4096Key"] = func(param ...string) (string, error) {
+		if len(param) != 1 {
+			return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
+		}
+
+		privKey, err := rsa.GenerateKey(rand.Reader, 4096)
+		if err != nil {
+			return "", err
+		}
+		publicKey, _ := ssh.NewPublicKey(privKey.Public())
+
+		pemKey := &pem.Block{
+			Type:  "RSA PRIVATE KEY",                    // "PRIVATE KEY"
+			Bytes: x509.MarshalPKCS1PrivateKey(privKey), // x509.MarshalPKCS8PrivateKey
 		}
 		privateKey := pem.EncodeToMemory(pemKey)
 		authorizedKey := ssh.MarshalAuthorizedKey(publicKey)

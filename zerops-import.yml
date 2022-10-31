@@ -61,8 +61,12 @@ services:
       PASSWORD_SHA512: "{$getNamedString(myPassword) | sha512}"
       PASSWORD_BCRYPT: "{$getNamedString(myPassword) | bcrypt}"
 
-      SSH_KEY_PUB: "{$generateEd25519Key(mySshKey)}"
+      ED25519_KEY_PUB: "{$generateED25519Key(myED25519Key)}"
 
-      SSH_KEY_PRIVATE: "{$getNamedString(mySshKeyPrivate)}"
+      ED25519_KEY_PRIVATE: "{$getNamedString(myED25519KeyPrivate)}"
+
+      RSA_KEY_PUB: "{$generateRSA4096Key(myRSA4096Key)}"
+
+      RSA_KEY_PRIVATE: "{$getNamedString(myRSA4096KeyPrivate)}"
 
       MERCURY_RETROGRADE: "{$mercuryInRetrograde(mercury is in retrograde, mercury is not in retrograde) | title}"
