@@ -4,44 +4,44 @@ import (
 	"errors"
 )
 
-type YamlParserItemType int
-type YamlParserItemSection int
+type itemType int
+type itemSection int
 
 const (
-	yamlItemTypeFunction YamlParserItemType = iota
-	yamlItemTypeString
+	itemTypeFunction itemType = iota
+	itemTypeString
 )
 const (
-	yamlItemSectionName YamlParserItemSection = iota // function name for name yamlItemTypeFunction or string content for yamlItemTypeString
-	yamlItemSectionParameters
-	yamlItemSectionModifiers
+	itemSectionName itemSection = iota // function name for name itemTypeFunction or string content for itemTypeString
+	itemSectionParameters
+	itemSectionModifiers
 )
 
-type yamlParserItemWrap struct {
-	t YamlParserItemType
+type itemWrap struct {
+	t itemType
 
 	name       string // represents function name or string content
 	parameters []string
 	modifiers  []string
 
-	currSection  YamlParserItemSection
+	currSection  itemSection
 	currParam    int
 	currModifier int
 
-	children *yamlParserItemWrap
-	parent   *yamlParserItemWrap
+	children *itemWrap
+	parent   *itemWrap
 }
 
-func newYamlParserItemWrap(r rune, parent *yamlParserItemWrap) *yamlParserItemWrap {
-	item := &yamlParserItemWrap{
-		t:            yamlItemTypeString,
+func newItemWrap(r rune, parent *itemWrap) *itemWrap {
+	item := &itemWrap{
+		t:            itemTypeString,
 		parent:       parent,
 		modifiers:    make([]string, 0, 5),
-		currSection:  yamlItemSectionName,
+		currSection:  itemSectionName,
 		currModifier: -1, // start at -1, because first encounter of | increments by 1
 	}
 	if r == '$' {
-		item.t = yamlItemTypeFunction
+		item.t = itemTypeFunction
 		item.parameters = make([]string, 1, 2)
 	} else {
 		item.name = string(r)
@@ -49,41 +49,41 @@ func newYamlParserItemWrap(r rune, parent *yamlParserItemWrap) *yamlParserItemWr
 	return item
 }
 
-func (i *yamlParserItemWrap) IsWriteString() bool {
-	return i != nil && i.name == "writeString" && i.currSection == yamlItemSectionParameters
+func (i *itemWrap) IsWriteString() bool {
+	return i != nil && i.name == "writeString" && i.currSection == itemSectionParameters
 }
 
-func (i *yamlParserItemWrap) IsFunction() bool {
-	return i != nil && i.t == yamlItemTypeFunction
+func (i *itemWrap) IsFunction() bool {
+	return i != nil && i.t == itemTypeFunction
 }
 
-func (i *yamlParserItemWrap) IsString() bool {
-	return i != nil && i.t == yamlItemTypeString
+func (i *itemWrap) IsString() bool {
+	return i != nil && i.t == itemTypeString
 }
 
-func (i *yamlParserItemWrap) ProcessCurrentFunctionSection(r rune) (bool, error) {
+func (i *itemWrap) ProcessCurrentFunctionSection(r rune) (bool, error) {
 	switch r {
 	case '|':
-		if i.currSection == yamlItemSectionName {
+		if i.currSection == itemSectionName {
 			return false, errors.New("modifier character is not allowed in a function name")
-		} else if i.currSection == yamlItemSectionParameters {
+		} else if i.currSection == itemSectionParameters {
 			return false, nil
 		}
 		i.currModifier++
 	case '(':
 		// eat (
-		if i.currSection != yamlItemSectionName {
+		if i.currSection != itemSectionName {
 			return false, errors.New("opening brace at incorrect place")
 		}
-		i.currSection = yamlItemSectionParameters
+		i.currSection = itemSectionParameters
 	case ')':
 		// eat )
-		if i.currSection != yamlItemSectionParameters {
+		if i.currSection != itemSectionParameters {
 			return false, errors.New("closing brace at incorrect place")
 		}
-		i.currSection = yamlItemSectionModifiers
+		i.currSection = itemSectionModifiers
 	case ',':
-		if i.currSection != yamlItemSectionParameters {
+		if i.currSection != itemSectionParameters {
 			return false, errors.New("comma at incorrect place")
 		}
 		// eat ,

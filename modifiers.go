@@ -14,13 +14,13 @@ import (
 
 type modifyFunc func(in string) (string, error)
 
-type YamlModifiers struct {
+type Modifiers struct {
 	modifiers map[string]modifyFunc
 }
 
-func NewYamlModifiers() *YamlModifiers {
+func NewModifiers() *Modifiers {
 	caser := cases.Title(language.English, cases.NoLower)
-	return &YamlModifiers{
+	return &Modifiers{
 		modifiers: map[string]modifyFunc{
 			"sha256": func(in string) (string, error) {
 				hash := sha256.New()
@@ -54,7 +54,7 @@ func NewYamlModifiers() *YamlModifiers {
 	}
 }
 
-func (f YamlModifiers) Call(name, value string) (string, error) {
+func (f Modifiers) Call(name, value string) (string, error) {
 	fn, found := f.modifiers[name]
 	if !found {
 		return "", fmt.Errorf("modifier [%s] not found", name)
@@ -62,7 +62,7 @@ func (f YamlModifiers) Call(name, value string) (string, error) {
 	return fn(value)
 }
 
-func (f YamlModifiers) CallBatch(value string, modifiers ...string) (string, error) {
+func (f Modifiers) CallBatch(value string, modifiers ...string) (string, error) {
 	for _, name := range modifiers {
 		fn, found := f.modifiers[name]
 		if !found {

@@ -7,19 +7,31 @@ import (
 )
 
 func main() {
-	yml, err := os.Open("zerops-import.yml")
+	inName := "zerops-import.yml"
+	outName := "zerops-import.parsed.yml"
+
+	yml, err := os.Open(inName)
 	if err != nil {
-		yml, err = os.Open("../zerops-import.yml")
+		// create output file in the same folder as input file
+		inName = "../" + inName
+		outName = "../" + outName
+
+		yml, err = os.Open(inName)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}
 
-	p := NewImportParser(yml)
+	out, err := os.OpenFile(outName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		log.Fatal(err)
+	}
+	p := NewImportParser(yml, out)
 
 	if err := p.Parse(); err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(p.GetOutput())
+	result, err := os.ReadFile(outName)
+	fmt.Println(string(result))
 }

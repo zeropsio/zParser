@@ -18,17 +18,17 @@ import (
 	"git.vsh-labs.cz/zerops/yaml-parser/util"
 )
 
-type yamlFunction func(param ...string) (string, error)
+type function func(param ...string) (string, error)
 
-type YamlFunctions struct {
+type Functions struct {
 	namedValues map[string]string
-	functions   map[string]yamlFunction
+	functions   map[string]function
 }
 
-func NewYamlFunctions() *YamlFunctions {
-	y := &YamlFunctions{
+func NewFunctions() *Functions {
+	y := &Functions{
 		namedValues: make(map[string]string, 50),
-		functions: map[string]yamlFunction{
+		functions: map[string]function{
 			"generateRandomString": generateRandomString,
 			"generateRandomInt":    generateRandomInt,
 			"mercuryInRetrograde":  mercuryInRetrograde,
@@ -94,7 +94,7 @@ func NewYamlFunctions() *YamlFunctions {
 	return y
 }
 
-func (f YamlFunctions) Call(name string, params ...string) (string, error) {
+func (f Functions) Call(name string, params ...string) (string, error) {
 	fn, found := f.functions[name]
 	if !found {
 		return "", fmt.Errorf("function [%s] not found", name)

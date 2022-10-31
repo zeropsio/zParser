@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -10,33 +9,29 @@ import (
 )
 
 type ImportParser struct {
-	out *bytes.Buffer // TODO(ms): use writer instead of a buffer
+	out *bufio.Writer
 	in  *bufio.Reader
 
 	functionCount int
 	currentLine   int
-	currentItem   *yamlParserItemWrap
+	currentItem   *itemWrap
 
-	functions *YamlFunctions
-	mutations *YamlModifiers
+	functions *Functions
+	mutations *Modifiers
 }
 
-func NewImportParser(in io.Reader) *ImportParser {
-	b := make([]byte, 0, 1024*100) // kB
+func NewImportParser(in io.Reader, out io.Writer) *ImportParser {
 	p := &ImportParser{
-		in:        bufio.NewReader(in),
-		out:       bytes.NewBuffer(b),
-		functions: NewYamlFunctions(),
-		mutations: NewYamlModifiers(),
+		in:  bufio.NewReader(in),
+		out: bufio.NewWriter(out),
+
+		functions: NewFunctions(),
+		mutations: NewModifiers(),
 
 		currentLine: 1,
 	}
 
 	return p
-}
-
-func (p *ImportParser) GetOutput() *bytes.Buffer {
-	return p.out
 }
 
 func (p *ImportParser) Parse() error {
@@ -102,7 +97,7 @@ func (p *ImportParser) Parse() error {
 
 			// end of currently processed item
 			// TODO(ms): refactor
-			if r == '}' && ((p.currentItem.IsFunction() && p.currentItem.currSection == yamlItemSectionModifiers) || p.currentItem.IsString()) {
+			if r == '}' && ((p.currentItem.IsFunction() && p.currentItem.currSection == itemSectionModifiers) || p.currentItem.IsString()) {
 				if err := p.processCurrentItem(); err != nil {
 					return p.fmtErr(previousRune, r, err)
 				}
@@ -128,7 +123,7 @@ func (p *ImportParser) Parse() error {
 				}
 
 				// TODO(ms): refactor
-				if p.currentItem.currSection == yamlItemSectionModifiers && p.currentItem.currModifier == -1 {
+				if p.currentItem.currSection == itemSectionModifiers && p.currentItem.currModifier == -1 {
 					if r != ' ' {
 						return p.fmtErr(previousRune, r, errors.New("invalid character, expected space od modifier character"))
 					} else {
@@ -140,22 +135,22 @@ func (p *ImportParser) Parse() error {
 				// - after function section detection, this way a pipe is allowed inside a function parameter
 				if r == '|' {
 					// eat |
-					p.currentItem.currSection = yamlItemSectionModifiers
+					p.currentItem.currSection = itemSectionModifiers
 					p.currentItem.currModifier++
 					return nil
 				}
 			}
 
 			switch p.currentItem.currSection {
-			case yamlItemSectionName:
+			case itemSectionName:
 				p.currentItem.name += string(r)
-			case yamlItemSectionParameters:
+			case itemSectionParameters:
 				if len(p.currentItem.parameters) < p.currentItem.currParam+1 {
 					p.currentItem.parameters = append(p.currentItem.parameters, string(r))
 				} else {
 					p.currentItem.parameters[p.currentItem.currParam] += string(r)
 				}
-			case yamlItemSectionModifiers:
+			case itemSectionModifiers:
 				if p.currentItem.currModifier == -1 {
 					return nil
 				}
@@ -176,7 +171,7 @@ func (p *ImportParser) Parse() error {
 		}
 	}
 
-	return nil
+	return p.out.Flush()
 }
 
 func (p *ImportParser) fmtErr(prev, curr rune, err error) error {
@@ -204,7 +199,7 @@ func (p *ImportParser) writeRune(r rune) error {
 }
 
 func (p *ImportParser) initializeItem(r rune) {
-	item := newYamlParserItemWrap(r, p.currentItem)
+	item := newItemWrap(r, p.currentItem)
 	if p.currentItem != nil {
 		item.parent = p.currentItem
 	}
@@ -220,7 +215,7 @@ func (p *ImportParser) processCurrentItem() error {
 
 	out := ""
 	switch p.currentItem.t {
-	case yamlItemTypeFunction:
+	case itemTypeFunction:
 		if err := p.incrementFunctionCount(); err != nil {
 			return err
 		}
@@ -233,7 +228,7 @@ func (p *ImportParser) processCurrentItem() error {
 		if err != nil {
 			return err
 		}
-	case yamlItemTypeString:
+	case itemTypeString:
 		out = p.currentItem.name
 	}
 
