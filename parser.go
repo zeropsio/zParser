@@ -34,6 +34,11 @@ func NewImportParser(in io.Reader, out io.Writer) *ImportParser {
 	return p
 }
 
+// Parse
+// TODO:
+//  - add character escaping using \ instead of harakiri with {{}} = {} and {{} = { and {}} = } etc.
+//  - fix RSA/ED key generator functions, to properly indent their output
+//    - probably count spaces/tabs before first character in line and use that for to indentation
 func (p *ImportParser) Parse() error {
 	var previousRune rune
 	skipItemCount := 0
@@ -92,6 +97,11 @@ func (p *ImportParser) Parse() error {
 			// - if another { is found before }, new item is initialized as a child
 			if previousRune == '{' && r != '{' && r != '}' {
 				p.initializeItem(r)
+				return nil
+			}
+
+			// eat {}
+			if previousRune == '{' && r == '}' {
 				return nil
 			}
 

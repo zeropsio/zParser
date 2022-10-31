@@ -63,10 +63,25 @@ services:
 
       ED25519_KEY_PUB: "{$generateED25519Key(myED25519Key)}"
 
-      ED25519_KEY_PRIVATE: "{$getNamedString(myED25519KeyPrivate)}"
+      ED25519_KEY_PRIVATE: |
+        {$getNamedString(myED25519KeyPrivate)}
 
       RSA_KEY_PUB: "{$generateRSA4096Key(myRSA4096Key)}"
 
-      RSA_KEY_PRIVATE: "{$getNamedString(myRSA4096KeyPrivate)}"
+      RSA_KEY_PRIVATE: |
+        {$getNamedString(myRSA4096KeyPrivate)}
 
       MERCURY_RETROGRADE: "{$mercuryInRetrograde(mercury is in retrograde, mercury is not in retrograde) | title}"
+
+      BROKEN_KEY_START: |
+        this thing will break
+        its quite sad
+        but it's the truth,
+        unless we escape it {{}
+
+      BROKEN_KEY_END: |
+        I think this wont work
+        but just in case...
+        Maybe escaping
+        using curly braces
+        is the norm }
