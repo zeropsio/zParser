@@ -12,17 +12,21 @@ services:
 
       STRING_WITH_ENV_INSIDE: "{my super cool string with ${myEnvVar} inside for whatever reason | noop}"
 
-      MULTI_LINE_STRING: "{{ ESC \
-       apEd \
-       Multi L \
-       ine
-       STRING 
-       | upper}
-      }"
+      MULTI_LINE_STRING: |
+        {{ ESC
+         apEd
+         Multi L
+         ine
+         STRING
+         | upper}
+        }
 
       ONE_FUNCTION: "{$generateRandomString(20)}"
       TWO_FUNCTIONS: "{$generateRandomString(20)}{$generateRandomInt(1, 9999)}"
       NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
+
+      FUNCTION_WITH_ENV_SYNTAX: "{$namedString(envString, this is a named string that contains { ${my_env} } env syntax using escaping)}"
+      FUNCTION_WITH_COMMA_IN_PARAM: "{$namedString(commaString, this is a named string{,} that contains some lovely commas{,} what do you think?)}"
 
       STRING_ONE_MODIFIER: "{my super cool string | upper}"
       STRING_TWO_MODIFIERS: "{my super cool string | upper | sha512}"
@@ -60,6 +64,7 @@ services:
       PASSWORD_PLAIN: "{$generateRandomNamedString(myPassword, 30)}"
       PASSWORD_SHA512: "{$getNamedString(myPassword) | sha512}"
       PASSWORD_BCRYPT: "{$getNamedString(myPassword) | bcrypt}"
+      PASSWORD_ARGON2: "{$getNamedString(myPassword) | argon2id}"
 
       ED25519_KEY_PUB: "{$generateED25519Key(myED25519Key)}"
 

@@ -40,8 +40,8 @@ func NewFunctions() *Functions {
 	}
 
 	y.functions["generateRandomNamedString"] = func(param ...string) (string, error) {
-		if len(param) != 2 {
-			return "", fmt.Errorf("invalid parameter count, 2 expected %d provided", len(param))
+		if err := paramCountCheck(2, len(param)); err != nil {
+			return "", err
 		}
 		str, err := generateRandomString(param[1])
 		if err != nil {
@@ -53,16 +53,17 @@ func NewFunctions() *Functions {
 	}
 
 	y.functions["namedString"] = func(param ...string) (string, error) {
-		if len(param) != 2 {
-			return "", fmt.Errorf("invalid parameter count, 2 expected %d provided", len(param))
+		if err := paramCountCheck(2, len(param)); err != nil {
+			return "", err
 		}
-		y.namedValues[param[0]] = param[1]
+
+		y.namedValues[param[0]] = strings.Join(param[1:], ",")
 		return param[1], nil
 	}
 
 	y.functions["getNamedString"] = func(param ...string) (string, error) {
-		if len(param) != 1 {
-			return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
+		if err := paramCountCheck(1, len(param)); err != nil {
+			return "", err
 		}
 		val, found := y.namedValues[param[0]]
 		if !found {
@@ -72,8 +73,8 @@ func NewFunctions() *Functions {
 	}
 
 	y.functions["generateED25519Key"] = func(param ...string) (string, error) {
-		if len(param) != 1 {
-			return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
+		if err := paramCountCheck(1, len(param)); err != nil {
+			return "", err
 		}
 
 		pubKey, privKey, _ := ed25519.GenerateKey(rand.Reader)
@@ -94,8 +95,8 @@ func NewFunctions() *Functions {
 	}
 
 	y.functions["generateRSA4096Key"] = func(param ...string) (string, error) {
-		if len(param) != 1 {
-			return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
+		if err := paramCountCheck(1, len(param)); err != nil {
+			return "", err
 		}
 
 		privKey, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -129,9 +130,16 @@ func (f Functions) Call(name string, params ...string) (string, error) {
 	return fn(params...)
 }
 
+func paramCountCheck(expected, received int) error {
+	if expected != received {
+		return fmt.Errorf("invalid parameter count, %d expected %d provided", expected, received)
+	}
+	return nil
+}
+
 func generateRandomInt(param ...string) (string, error) {
-	if len(param) != 2 {
-		return "", fmt.Errorf("invalid parameter count, 2 expected %d provided", len(param))
+	if err := paramCountCheck(2, len(param)); err != nil {
+		return "", err
 	}
 	min, err := strconv.ParseInt(param[0], 10, 64)
 	if err != nil {
@@ -154,8 +162,8 @@ func generateRandomInt(param ...string) (string, error) {
 
 func generateRandomString(param ...string) (string, error) {
 	const maxRandStringLen = 1024
-	if len(param) != 1 {
-		return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
+	if err := paramCountCheck(1, len(param)); err != nil {
+		return "", err
 	}
 	length, err := strconv.ParseInt(param[0], 10, 64)
 	if err != nil {
@@ -173,23 +181,22 @@ func generateRandomString(param ...string) (string, error) {
 }
 
 func getDatetime(param ...string) (string, error) {
-	if len(param) != 1 {
-		return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
+	if err := paramCountCheck(1, len(param)); err != nil {
+		return "", err
 	}
-
 	return gostradamus.Now().Format(param[0]), nil
 }
 
 func writeString(param ...string) (string, error) {
-	if len(param) != 1 {
-		return "", fmt.Errorf("invalid parameter count, 1 expected %d provided", len(param))
+	if err := paramCountCheck(1, len(param)); err != nil {
+		return "", err
 	}
 	return param[0], nil
 }
 
 func mercuryInRetrograde(param ...string) (string, error) {
-	if len(param) != 2 {
-		return "", fmt.Errorf("invalid parameter count, 2 expected %d provided", len(param))
+	if err := paramCountCheck(2, len(param)); err != nil {
+		return "", err
 	}
 
 	type dateRange struct {

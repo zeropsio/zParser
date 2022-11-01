@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"strings"
 
+	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -33,9 +36,31 @@ func NewModifiers() *Modifiers {
 				return hex.EncodeToString(hash.Sum(nil)), nil
 			},
 			"bcrypt": func(in string) (string, error) {
-				// TODO(ms): maybe use cost 10 to avoid DoS attacks, or rather limit max amount of usages?
-				hash, err := bcrypt.GenerateFromPassword([]byte(in), 11)
+				hash, err := bcrypt.GenerateFromPassword([]byte(in), 10) // cost 10 to not overload the parser service
 				return string(hash), err
+			},
+			"argon2id": func(in string) (string, error) {
+				// standard sane parameters chosen to not overload the parser service
+				const (
+					saltLen     = 16        // bytes
+					memory      = 96 * 1024 // kilobytes - main "knob" to turn for more expensive hashes
+					iterations  = 1
+					parallelism = 3
+					keyLength   = 32
+				)
+				salt := make([]byte, saltLen)
+				if _, err := rand.Read(salt); err != nil {
+					return "", err
+				}
+
+				hash := argon2.IDKey([]byte(in), salt, iterations, memory, parallelism, keyLength)
+
+				// Base64 encode the salt and hashed password.
+				b64Salt := base64.RawStdEncoding.EncodeToString(salt)
+				b64Hash := base64.RawStdEncoding.EncodeToString(hash)
+
+				// Return a string using the standard encoded hash representation.
+				return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, memory, iterations, parallelism, b64Salt, b64Hash), nil
 			},
 			"upper": func(in string) (string, error) {
 				return strings.ToUpper(in), nil

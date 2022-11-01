@@ -12,9 +12,11 @@ type ImportParser struct {
 	out *bufio.Writer
 	in  *bufio.Reader
 
-	functionCount int
-	currentLine   int
-	currentItem   *itemWrap
+	maxFunctionCount int
+	functionCount    int
+
+	currentLine int
+	currentItem *itemWrap
 
 	indentChar  rune
 	indentCount int
@@ -23,10 +25,12 @@ type ImportParser struct {
 	mutations *Modifiers
 }
 
-func NewImportParser(in io.Reader, out io.Writer) *ImportParser {
+func NewImportParser(in io.Reader, out io.Writer, maxFuncCount int) *ImportParser {
 	p := &ImportParser{
 		in:  bufio.NewReader(in),
 		out: bufio.NewWriter(out),
+
+		maxFunctionCount: maxFuncCount,
 
 		functions: NewFunctions(),
 		mutations: NewModifiers(),
@@ -37,27 +41,11 @@ func NewImportParser(in io.Reader, out io.Writer) *ImportParser {
 	return p
 }
 
-func (p *ImportParser) countIndent(indentSection bool, r rune) bool {
-	if !indentSection {
-		return false
-	}
-	if r != 0x0009 && r != ' ' {
-		return false
-	}
-	if p.indentChar == 0x0000 {
-		p.indentChar = r
-	}
-	p.indentCount++
-	return true
-}
-
-// Parse
-// TODO:
-//  - add character escaping using \ instead of harakiri with {{}} = {} and {{} = { and {}} = } etc.
 func (p *ImportParser) Parse() error {
 	var previousRune rune
 	skipItemCount := 0
 	indentSection := true // whether we are still at the beginning of the line, counting tabs/spaces for size of indentation
+
 	for {
 		err := func() error {
 			r, _, err := p.in.ReadRune()
@@ -68,7 +56,7 @@ func (p *ImportParser) Parse() error {
 				previousRune = r
 			}()
 			if indentSection {
-				indentSection = p.countIndent(indentSection, r)
+				indentSection = p.countIndent(r)
 			}
 			// newline
 			if r == 0x000A {
@@ -88,7 +76,7 @@ func (p *ImportParser) Parse() error {
 			// ignore env variables with following syntax: ${my_env}
 			if r == '{' && previousRune == '$' {
 				if p.currentItem.IsFunction() {
-					return p.fmtErr(previousRune, r, errors.New("env syntax `${xxx}` is not allowed inside function parameters"))
+					return p.fmtErr(previousRune, r, errors.New("env syntax `${xxx}` is not allowed inside function call"))
 				}
 				skipItemCount++
 			}
@@ -111,8 +99,7 @@ func (p *ImportParser) Parse() error {
 						return err
 					}
 				}
-				// eat {
-				return nil
+				return nil // eat {
 			}
 
 			// beginning of string or function
@@ -124,14 +111,12 @@ func (p *ImportParser) Parse() error {
 				return nil
 			}
 
-			// eat {}
 			if previousRune == '{' && r == '}' {
-				return nil
+				return nil // eat {}
 			}
 
 			// end of currently processed item
-			// TODO(ms): refactor
-			if r == '}' && ((p.currentItem.IsFunction() && p.currentItem.currSection == itemSectionModifiers) || p.currentItem.IsString()) {
+			if r == '}' && p.currentItem.CanBeEnded() {
 				if err := p.processCurrentItem(); err != nil {
 					return p.fmtErr(previousRune, r, err)
 				}
@@ -146,33 +131,20 @@ func (p *ImportParser) Parse() error {
 				return nil
 			}
 
-			if p.currentItem.IsFunction() {
-				// if we are inside a function, detect section of the function declaration we are parsing
-				cont, err := p.currentItem.ProcessCurrentFunctionSection(r)
-				if err != nil {
-					return p.fmtErr(previousRune, r, err)
-				}
-				if cont {
-					return nil
-				}
+			// if we are inside a function, detect section of the function declaration we are parsing
+			cont, err := p.currentItem.ProcessCurrentFunctionSection(r)
+			if err != nil {
+				return p.fmtErr(previousRune, r, err)
+			}
+			if cont {
+				return nil
+			}
 
-				// TODO(ms): refactor
-				if p.currentItem.currSection == itemSectionModifiers && p.currentItem.currModifier == -1 {
-					if r != ' ' {
-						return p.fmtErr(previousRune, r, errors.New("invalid character, expected space od modifier character"))
-					} else {
-						return nil
-					}
-				}
-			} else {
-				// switch to modifier section
-				// - after function section detection, this way a pipe is allowed inside a function parameter
-				if r == '|' {
-					// eat |
-					p.currentItem.currSection = itemSectionModifiers
-					p.currentItem.currModifier++
-					return nil
-				}
+			// switch to modifier section for strings
+			if r == '|' && p.currentItem.IsString() {
+				p.currentItem.currSection = itemSectionModifiers
+				p.currentItem.currModifier++
+				return nil // eat |
 			}
 
 			switch p.currentItem.currSection {
@@ -185,6 +157,7 @@ func (p *ImportParser) Parse() error {
 					p.currentItem.parameters[p.currentItem.currParam] += string(r)
 				}
 			case itemSectionModifiers:
+				// this prevents issues with spaces between function closing parentheses and first |
 				if p.currentItem.currModifier == -1 {
 					return nil
 				}
@@ -209,6 +182,7 @@ func (p *ImportParser) Parse() error {
 }
 
 func (p *ImportParser) fmtErr(prev, curr rune, err error) error {
+	// TODO(ms): use meta errors instead of newlines
 	paramStr := ""
 	for i, parameter := range p.currentItem.parameters {
 		paramStr += fmt.Sprintf("\nparam %d: `%s`", i+1, parameter)
@@ -216,6 +190,23 @@ func (p *ImportParser) fmtErr(prev, curr rune, err error) error {
 	return fmt.Errorf("error: %w\nline: %d\nnear: `%c%c`\nprocessing: `%s`%s", err, p.currentLine, prev, curr, p.currentItem.name, paramStr)
 }
 
+// counts amount of indentation characters on one line
+// if other char than TAB or SPACE are encountered, false is returned
+func (p *ImportParser) countIndent(r rune) bool {
+	if r != 0x0009 && r != ' ' {
+		return false
+	}
+	if p.indentChar == 0x0000 {
+		p.indentChar = r
+	}
+	p.indentCount++
+	return true
+}
+
+// writes provided rune to
+// - output if currentItem is nil
+// - parameters of current item if it's a function
+// - name of the current item if it's a string
 func (p *ImportParser) writeRune(r rune) error {
 	if p.currentItem == nil {
 		if _, err := p.out.WriteRune(r); err != nil {
@@ -232,6 +223,8 @@ func (p *ImportParser) writeRune(r rune) error {
 	return nil
 }
 
+// initializes a new item
+// if currentItem already exists, it's set as a parent of new item
 func (p *ImportParser) initializeItem(r rune) {
 	item := newItemWrap(r, p.currentItem, p.indentChar, p.indentCount)
 	if p.currentItem != nil {
@@ -240,6 +233,16 @@ func (p *ImportParser) initializeItem(r rune) {
 	p.currentItem = item
 }
 
+// Processes currentItem
+//
+// If it's itemTypeFunction, underlying function is called, otherwise "name" of the currentItem is used as output,
+// which is then run through all provided modifyFunc and written to
+//   - output if parent of currentItem is nil
+//     - if currentItem is itemTypeFunction, all newlines have indentation adjusted
+//       to be the same as the beginning of the line the function was declared on
+//   - current parameter of parent of currentItem if it's a itemTypeFunction
+//   - name of the parent of currentItem if it's a itemTypeString
+// currentItem is set to nil if it has no parent, or to the parent
 func (p *ImportParser) processCurrentItem() error {
 	if p.currentItem == nil {
 		return nil
@@ -247,7 +250,7 @@ func (p *ImportParser) processCurrentItem() error {
 
 	p.currentItem.name = strings.TrimSpace(p.currentItem.name)
 
-	addIndent := false // whether indentation should be added to the output - used only for functions, which may generate multiline output
+	addIndent := false // whether indentation should be added to the output - used only for functions (they may generate multiline output)
 	out := ""
 	switch p.currentItem.t {
 	case itemTypeFunction:
@@ -266,6 +269,8 @@ func (p *ImportParser) processCurrentItem() error {
 		addIndent = true
 	case itemTypeString:
 		out = p.currentItem.name
+	default:
+		return fmt.Errorf("unsupported item type [%d]", p.currentItem.t) // this should never happen
 	}
 
 	for _, modifier := range p.currentItem.modifiers {
@@ -292,26 +297,24 @@ func (p *ImportParser) processCurrentItem() error {
 		return nil
 	}
 
+	// indent every newline to same level as the line with function definition
 	if addIndent && p.currentItem.indentChar != 0x0000 {
-		// strings.Repeat(string(p.currentItem.indentChar), p.currentItem.indentCount)
 		out = strings.ReplaceAll(out, "\n", "\n"+strings.Repeat(string(p.currentItem.indentChar), p.currentItem.indentCount))
 	}
 
-	// if no parent exist, clear currentItem and write string to output
 	p.currentItem = nil
 
 	if _, err := p.out.WriteString(out); err != nil {
 		return err
 	}
-
 	return nil
 }
 
+// increments functionCount counter and returns error if it exceeds maxFunctionCount
 func (p *ImportParser) incrementFunctionCount() error {
-	const maxFunctionCalls = 200
 	p.functionCount++
-	if p.functionCount > maxFunctionCalls {
-		return fmt.Errorf("max amount of function calls [%d] exceeded", maxFunctionCalls)
+	if p.functionCount > p.maxFunctionCount {
+		return fmt.Errorf("max amount of function calls [%d] exceeded", p.maxFunctionCount)
 	}
 	return nil
 }
