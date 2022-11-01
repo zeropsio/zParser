@@ -16,6 +16,9 @@ type ImportParser struct {
 	currentLine   int
 	currentItem   *itemWrap
 
+	indentChar  rune
+	indentCount int
+
 	functions *Functions
 	mutations *Modifiers
 }
@@ -34,14 +37,27 @@ func NewImportParser(in io.Reader, out io.Writer) *ImportParser {
 	return p
 }
 
+func (p *ImportParser) countIndent(indentSection bool, r rune) bool {
+	if !indentSection {
+		return false
+	}
+	if r != 0x0009 && r != ' ' {
+		return false
+	}
+	if p.indentChar == 0x0000 {
+		p.indentChar = r
+	}
+	p.indentCount++
+	return true
+}
+
 // Parse
 // TODO:
 //  - add character escaping using \ instead of harakiri with {{}} = {} and {{} = { and {}} = } etc.
-//  - fix RSA/ED key generator functions, to properly indent their output
-//    - probably count spaces/tabs before first character in line and use that for to indentation
 func (p *ImportParser) Parse() error {
 	var previousRune rune
 	skipItemCount := 0
+	indentSection := true // whether we are still at the beginning of the line, counting tabs/spaces for size of indentation
 	for {
 		err := func() error {
 			r, _, err := p.in.ReadRune()
@@ -51,8 +67,16 @@ func (p *ImportParser) Parse() error {
 			defer func() {
 				previousRune = r
 			}()
+			if indentSection {
+				indentSection = p.countIndent(indentSection, r)
+			}
+			// newline
 			if r == 0x000A {
 				p.currentLine++
+				// reset indent counting
+				p.indentChar = 0x0000
+				p.indentCount = 0
+				indentSection = true
 			}
 
 			// as long as we are in "writeString" function (which acts as a pass through), blindly accept everything up to first )
@@ -209,7 +233,7 @@ func (p *ImportParser) writeRune(r rune) error {
 }
 
 func (p *ImportParser) initializeItem(r rune) {
-	item := newItemWrap(r, p.currentItem)
+	item := newItemWrap(r, p.currentItem, p.indentChar, p.indentCount)
 	if p.currentItem != nil {
 		item.parent = p.currentItem
 	}
@@ -223,6 +247,7 @@ func (p *ImportParser) processCurrentItem() error {
 
 	p.currentItem.name = strings.TrimSpace(p.currentItem.name)
 
+	addIndent := false // whether indentation should be added to the output - used only for functions, which may generate multiline output
 	out := ""
 	switch p.currentItem.t {
 	case itemTypeFunction:
@@ -238,6 +263,7 @@ func (p *ImportParser) processCurrentItem() error {
 		if err != nil {
 			return err
 		}
+		addIndent = true
 	case itemTypeString:
 		out = p.currentItem.name
 	}
@@ -264,6 +290,11 @@ func (p *ImportParser) processCurrentItem() error {
 		}
 
 		return nil
+	}
+
+	if addIndent && p.currentItem.indentChar != 0x0000 {
+		// strings.Repeat(string(p.currentItem.indentChar), p.currentItem.indentCount)
+		out = strings.ReplaceAll(out, "\n", "\n"+strings.Repeat(string(p.currentItem.indentChar), p.currentItem.indentCount))
 	}
 
 	// if no parent exist, clear currentItem and write string to output

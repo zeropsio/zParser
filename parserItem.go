@@ -28,17 +28,22 @@ type itemWrap struct {
 	currParam    int
 	currModifier int
 
+	indentChar  rune
+	indentCount int
+
 	children *itemWrap
 	parent   *itemWrap
 }
 
-func newItemWrap(r rune, parent *itemWrap) *itemWrap {
+func newItemWrap(r rune, parent *itemWrap, indentChar rune, indentCount int) *itemWrap {
 	item := &itemWrap{
 		t:            itemTypeString,
 		parent:       parent,
 		modifiers:    make([]string, 0, 5),
 		currSection:  itemSectionName,
 		currModifier: -1, // start at -1, because first encounter of | increments by 1
+		indentChar:   indentChar,
+		indentCount:  indentCount,
 	}
 	if r == '$' {
 		item.t = itemTypeFunction
