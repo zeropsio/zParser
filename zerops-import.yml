@@ -23,14 +23,13 @@ services:
          | upper}
         }
 
-      WTF: "{}{}{}{}{}{{{}}}{}{}{}"
-
       ONE_FUNCTION: "{$generateRandomString(20)}"
       TWO_FUNCTIONS: "{$generateRandomString(20)}{$generateRandomInt(1, 9999)}"
       NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
 
       ESCAPED_NESTED_FUNCTIONS: "\{$generateRandomString(\{$generateRandomInt(10, 50)\})\}"
-      AAA: "\{ \{ \{ \} \} \}"
+      ESCAPE_TEST: "\{ \{\\ \\ \\\\ \\\{ {\\} \\\} \\} \}\\ \}"
+      ESCAPE_TEST_WITH_ITEM: "\\{ sTriNG \\ witH, mOdiFiers | title }\\"
 
       FUNCTION_WITH_ENV_SYNTAX: "{$namedString(envString, this is a named string that contains { ${my_env} } env syntax using escaping)}"
       FUNCTION_WITH_COMMA_IN_PARAM: "{$namedString(commaString, this is a named string{,} that contains some lovely commas{,} what do you think?)}"

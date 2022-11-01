@@ -57,9 +57,10 @@ func NewImportParser(in io.Reader, out io.Writer, maxFuncCount int) *ImportParse
 func (p *ImportParser) Parse() error {
 	var previousRune rune
 
-	skipInitialize := 0   // if above 0 skips X characters, decrementing variable with every skip
-	skipEnv := false      // if set to true, skips all characters until first unescaped } and sets variable to false
-	indentSection := true // whether any char other than TAB or SPACE occurred on current line (set to false with first such occurrence)
+	skipInitialize := 0      // if above 0 skips X characters, decrementing variable with every skip
+	skipEnv := false         // if set to true, skips all characters until first unescaped } and sets variable to false
+	indentSection := true    // whether any char other than TAB or SPACE occurred on current line (set to false with first such occurrence)
+	lastCharEscaped := false // whether last character was escaped
 
 	for {
 		err := func() error {
@@ -104,16 +105,20 @@ func (p *ImportParser) Parse() error {
 			// eat \ instead of writing it to output
 			if r == escapeChar {
 				// if previous rune was also \ write it to output
-				if previousRune == escapeChar {
+				if previousRune == escapeChar && !lastCharEscaped {
 					if err := p.writeRune(previousRune); err != nil {
 						return err
 					}
+					lastCharEscaped = true
+					return nil
 				}
+				lastCharEscaped = false
 				return nil
 			}
 
 			// if previous rune is \ write current rune directly without any processing
-			if previousRune == escapeChar {
+			if previousRune == escapeChar && !lastCharEscaped {
+				// lastCharEscaped = false
 				if err := p.writeRune(r); err != nil {
 					return err
 				}
