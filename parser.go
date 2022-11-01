@@ -67,6 +67,25 @@ func (p *ImportParser) Parse() error {
 				indentSection = true
 			}
 
+			// TODO(ms): clean up
+			// escaping -> eat \ instead of writing it to output
+			if r == '\\' {
+				// if previous rune was also \ write it to output
+				if previousRune == '\\' {
+					if err := p.writeRune(previousRune); err != nil {
+						return err
+					}
+				}
+				return nil // eat \
+			}
+			// escaping if previous rune is \ write current rune directly without any processing
+			if previousRune == '\\' {
+				if err := p.writeRune(r); err != nil {
+					return err
+				}
+				return nil
+			}
+
 			// as long as we are in "writeString" function (which acts as a pass through), blindly accept everything up to first )
 			if p.currentItem.IsWriteString() && r != ')' {
 				p.currentItem.parameters[p.currentItem.currParam] += string(r)
