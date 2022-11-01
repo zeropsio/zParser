@@ -20,6 +20,8 @@ import (
 	"git.vsh-labs.cz/zerops/yaml-parser/util"
 )
 
+const maxRandStringLen = 1024
+
 type function func(param ...string) (string, error)
 
 type Functions struct {
@@ -35,7 +37,6 @@ func NewFunctions() *Functions {
 			"generateRandomInt":    generateRandomInt,
 			"mercuryInRetrograde":  mercuryInRetrograde,
 			"getDatetime":          getDatetime,
-			"writeString":          writeString,
 		},
 	}
 
@@ -57,7 +58,7 @@ func NewFunctions() *Functions {
 			return "", err
 		}
 
-		y.namedValues[param[0]] = strings.Join(param[1:], ",")
+		y.namedValues[param[0]] = param[1]
 		return param[1], nil
 	}
 
@@ -137,6 +138,7 @@ func paramCountCheck(expected, received int) error {
 	return nil
 }
 
+// generates cryptographically secure random int in [min, max]
 func generateRandomInt(param ...string) (string, error) {
 	if err := paramCountCheck(2, len(param)); err != nil {
 		return "", err
@@ -160,8 +162,8 @@ func generateRandomInt(param ...string) (string, error) {
 	return strconv.FormatInt(n.Int64()+min, 10), nil
 }
 
+// generates cryptographically secure random string of specified length given its <= maxRandStringLen
 func generateRandomString(param ...string) (string, error) {
-	const maxRandStringLen = 1024
 	if err := paramCountCheck(1, len(param)); err != nil {
 		return "", err
 	}
@@ -180,6 +182,7 @@ func generateRandomString(param ...string) (string, error) {
 	return hex.EncodeToString(result)[:length], nil
 }
 
+// returns date time using formatted by format inside first parameter which supports gostradamus.FormatToken values
 func getDatetime(param ...string) (string, error) {
 	if err := paramCountCheck(1, len(param)); err != nil {
 		return "", err
@@ -187,13 +190,7 @@ func getDatetime(param ...string) (string, error) {
 	return gostradamus.Now().Format(param[0]), nil
 }
 
-func writeString(param ...string) (string, error) {
-	if err := paramCountCheck(1, len(param)); err != nil {
-		return "", err
-	}
-	return param[0], nil
-}
-
+// returns first parameter if Mercury is in retrograde and second parameter if it is NOT in retrograde
 func mercuryInRetrograde(param ...string) (string, error) {
 	if err := paramCountCheck(2, len(param)); err != nil {
 		return "", err

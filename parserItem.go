@@ -45,17 +45,13 @@ func newItemWrap(r rune, parent *itemWrap, indentChar rune, indentCount int) *it
 		indentChar:   indentChar,
 		indentCount:  indentCount,
 	}
-	if r == '$' {
+	if r == funcStartChar {
 		item.t = itemTypeFunction
 		item.parameters = make([]string, 1, 2)
 	} else {
 		item.name = string(r)
 	}
 	return item
-}
-
-func (i *itemWrap) IsWriteString() bool {
-	return i != nil && i.name == "writeString" && i.currSection == itemSectionParameters
 }
 
 // CanBeEnded returns whether item is in a section, where } should be considered as an end of the item
@@ -79,23 +75,23 @@ func (i *itemWrap) ProcessCurrentFunctionSection(r rune) (bool, error) {
 	}
 
 	switch r {
-	case '(':
+	case paramStartChar:
 		if i.currSection != itemSectionName {
 			return false, errors.New("opening brace at incorrect place")
 		}
 		i.currSection = itemSectionParameters
-	case ')':
+	case paramEndChar:
 		if i.currSection != itemSectionParameters {
 			return false, errors.New("closing brace at incorrect place")
 		}
 		i.currSection = itemSectionModifiers
-	case ',':
+	case paramSepChar:
 		if i.currSection != itemSectionParameters {
 			return false, errors.New("comma at incorrect place")
 		}
 		i.currParam++
 		i.parameters = append(i.parameters, "")
-	case '|':
+	case modifierChar:
 		if i.currSection == itemSectionName {
 			return false, errors.New("modifier character is not allowed in a function name")
 		} else if i.currSection == itemSectionParameters {

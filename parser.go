@@ -8,6 +8,18 @@ import (
 	"strings"
 )
 
+const (
+	escapeChar     = '\\'
+	newlineChar    = '\n'
+	itemStartChar  = '{'
+	itemEndChar    = '}'
+	funcStartChar  = '$' // this is combined with itemStartChar which must be preceding
+	modifierChar   = '|'
+	paramStartChar = '('
+	paramEndChar   = ')'
+	paramSepChar   = ','
+)
+
 type ImportParser struct {
 	out *bufio.Writer
 	in  *bufio.Reader
@@ -16,6 +28,7 @@ type ImportParser struct {
 	functionCount    int
 
 	currentLine int
+	currentChar int
 	currentItem *itemWrap
 
 	indentChar  rune
@@ -43,8 +56,10 @@ func NewImportParser(in io.Reader, out io.Writer, maxFuncCount int) *ImportParse
 
 func (p *ImportParser) Parse() error {
 	var previousRune rune
-	skipItemCount := 0
-	indentSection := true // whether we are still at the beginning of the line, counting tabs/spaces for size of indentation
+
+	skipInitialize := 0   // if above 0 skips X characters, decrementing variable with every skip
+	skipEnv := false      // if set to true, skips all characters until first unescaped } and sets variable to false
+	indentSection := true // whether any char other than TAB or SPACE occurred on current line (set to false with first such occurrence)
 
 	for {
 		err := func() error {
@@ -55,87 +70,86 @@ func (p *ImportParser) Parse() error {
 			defer func() {
 				previousRune = r
 			}()
+
+			p.currentChar++
 			if indentSection {
 				indentSection = p.countIndent(r)
 			}
+
 			// newline
-			if r == 0x000A {
+			if r == newlineChar {
 				p.currentLine++
-				// reset indent counting
-				p.indentChar = 0x0000
+				p.currentChar = 0
+
+				// reset indentation parsing
+				p.indentChar = 0
 				p.indentCount = 0
 				indentSection = true
-			}
-
-			// TODO(ms): clean up
-			// escaping -> eat \ instead of writing it to output
-			if r == '\\' {
-				// if previous rune was also \ write it to output
-				if previousRune == '\\' {
-					if err := p.writeRune(previousRune); err != nil {
-						return err
-					}
-				}
-				return nil // eat \
-			}
-			// escaping if previous rune is \ write current rune directly without any processing
-			if previousRune == '\\' {
-				if err := p.writeRune(r); err != nil {
-					return err
-				}
-				return nil
-			}
-
-			// as long as we are in "writeString" function (which acts as a pass through), blindly accept everything up to first )
-			if p.currentItem.IsWriteString() && r != ')' {
-				p.currentItem.parameters[p.currentItem.currParam] += string(r)
-				return nil
-			}
-
-			// ignore env variables with following syntax: ${my_env}
-			if r == '{' && previousRune == '$' {
-				if p.currentItem.IsFunction() {
-					return p.fmtErr(previousRune, r, errors.New("env syntax `${xxx}` is not allowed inside function call"))
-				}
-				skipItemCount++
-			}
-
-			if skipItemCount > 0 {
-				if err := p.writeRune(r); err != nil {
-					return err
-				}
-				if r == '}' {
-					skipItemCount--
-				}
-				return nil
-			}
-
-			// eat { instead of writing it to output
-			if r == '{' {
-				// if previous rune was { write it to output (we need to eat only last occurrence of { in a chain)
-				if previousRune == '{' {
-					if err := p.writeRune(previousRune); err != nil {
-						return err
-					}
-				}
-				return nil // eat {
 			}
 
 			// beginning of string or function
 			// - string like {{ abcd | upper }} has only inside processed and surrounding { and } are preserved, resulting in { ABCD }
 			// - strings like {} are be skipped
 			// - if another { is found before }, new item is initialized as a child
-			if previousRune == '{' && r != '{' && r != '}' {
+			if previousRune == itemStartChar && r != itemEndChar && !skipEnv && skipInitialize == 0 {
 				p.initializeItem(r)
 				return nil
 			}
+			if skipInitialize > 0 {
+				skipInitialize--
+			}
 
-			if previousRune == '{' && r == '}' {
-				return nil // eat {}
+			// ESCAPING - Start
+
+			// eat \ instead of writing it to output
+			if r == escapeChar {
+				// if previous rune was also \ write it to output
+				if previousRune == escapeChar {
+					if err := p.writeRune(previousRune); err != nil {
+						return err
+					}
+				}
+				return nil
+			}
+
+			// if previous rune is \ write current rune directly without any processing
+			if previousRune == escapeChar {
+				if err := p.writeRune(r); err != nil {
+					return err
+				}
+				// do not initialize an item if current { was escaped
+				if r == itemStartChar {
+					skipInitialize++
+				}
+				return nil
+			}
+
+			// ignore env variables with following syntax: ${my_env}
+			if r == itemStartChar && previousRune == funcStartChar {
+				if p.currentItem.IsFunction() {
+					return p.fmtErr(previousRune, r, errors.New("env syntax `${xxx}` is not allowed inside function call"))
+				}
+				skipEnv = true
+			}
+
+			if skipEnv {
+				if err := p.writeRune(r); err != nil {
+					return err
+				}
+				if r == itemEndChar {
+					skipEnv = false
+				}
+				return nil
+			}
+			// ESCAPING - End
+
+			// eat { instead of writing it to output
+			if r == itemStartChar {
+				return nil // eat {
 			}
 
 			// end of currently processed item
-			if r == '}' && p.currentItem.CanBeEnded() {
+			if r == itemEndChar && p.currentItem.CanBeEnded() {
 				if err := p.processCurrentItem(); err != nil {
 					return p.fmtErr(previousRune, r, err)
 				}
@@ -160,7 +174,7 @@ func (p *ImportParser) Parse() error {
 			}
 
 			// switch to modifier section for strings
-			if r == '|' && p.currentItem.IsString() {
+			if r == modifierChar && p.currentItem.IsString() {
 				p.currentItem.currSection = itemSectionModifiers
 				p.currentItem.currModifier++
 				return nil // eat |
@@ -206,16 +220,16 @@ func (p *ImportParser) fmtErr(prev, curr rune, err error) error {
 	for i, parameter := range p.currentItem.parameters {
 		paramStr += fmt.Sprintf("\nparam %d: `%s`", i+1, parameter)
 	}
-	return fmt.Errorf("error: %w\nline: %d\nnear: `%c%c`\nprocessing: `%s`%s", err, p.currentLine, prev, curr, p.currentItem.name, paramStr)
+	return fmt.Errorf("error: %w\nline: %d\ncol: %d\nnear: `%c%c`\nprocessing: `%s`%s", err, p.currentLine, p.currentChar, prev, curr, p.currentItem.name, paramStr)
 }
 
 // counts amount of indentation characters on one line
 // if other char than TAB or SPACE are encountered, false is returned
 func (p *ImportParser) countIndent(r rune) bool {
-	if r != 0x0009 && r != ' ' {
+	if r != '\t' && r != ' ' {
 		return false
 	}
-	if p.indentChar == 0x0000 {
+	if p.indentChar == 0 {
 		p.indentChar = r
 	}
 	p.indentCount++
@@ -245,6 +259,11 @@ func (p *ImportParser) writeRune(r rune) error {
 // initializes a new item
 // if currentItem already exists, it's set as a parent of new item
 func (p *ImportParser) initializeItem(r rune) {
+	// if rune is set to an escape char, do not pass it to constructor
+	// we know it will be used to escape the following character, and do not want it to be in the item's name
+	if r == escapeChar {
+		r = 0
+	}
 	item := newItemWrap(r, p.currentItem, p.indentChar, p.indentCount)
 	if p.currentItem != nil {
 		item.parent = p.currentItem
@@ -317,7 +336,7 @@ func (p *ImportParser) processCurrentItem() error {
 	}
 
 	// indent every newline to same level as the line with function definition
-	if addIndent && p.currentItem.indentChar != 0x0000 {
+	if addIndent && p.currentItem.indentChar != 0 {
 		out = strings.ReplaceAll(out, "\n", "\n"+strings.Repeat(string(p.currentItem.indentChar), p.currentItem.indentCount))
 	}
 

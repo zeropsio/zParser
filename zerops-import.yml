@@ -8,12 +8,14 @@ services:
       MULTIPLE_NESTED_ENVS: "${my_e${my_e${my_env}nv}nv}"
 
       ESCAPED_VALUE: "{{MY_ESCAPED_VALUE}}"
+      ESCAPED_VALUE_2: "\{MY_ESCAPED_VALUE\}"
       ESCAPED_VALUE_DOUBLE: "{{{MY_ESCAPED_VALUE}}}"
+      ESCAPED_VALUE_DOUBLE_2: "\{\{MY_ESCAPED_VALUE\}\}"
 
       STRING_WITH_ENV_INSIDE: "{my super cool string with ${myEnvVar} inside for whatever reason | noop}"
 
       MULTI_LINE_STRING: |
-        {{ ESC
+        \{{ ESC
          apEd
          Multi L
          ine
@@ -21,9 +23,14 @@ services:
          | upper}
         }
 
+      WTF: "{}{}{}{}{}{{{}}}{}{}{}"
+
       ONE_FUNCTION: "{$generateRandomString(20)}"
       TWO_FUNCTIONS: "{$generateRandomString(20)}{$generateRandomInt(1, 9999)}"
       NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
+
+      ESCAPED_NESTED_FUNCTIONS: "\{$generateRandomString(\{$generateRandomInt(10, 50)\})\}"
+      AAA: "\{ \{ \{ \} \} \}"
 
       FUNCTION_WITH_ENV_SYNTAX: "{$namedString(envString, this is a named string that contains { ${my_env} } env syntax using escaping)}"
       FUNCTION_WITH_COMMA_IN_PARAM: "{$namedString(commaString, this is a named string{,} that contains some lovely commas{,} what do you think?)}"
@@ -35,13 +42,13 @@ services:
       NESTED_STRINGS_ONE_MODIFIER: "{my super cool { and my nested } strings | upper}"
       NESTED_STRINGS_ONE_NESTED_MODIFIER: "{my super cool { And My NeStED | upper } strings}"
 
-      WRITE_STRING: "{$writeString({$ some random string $})}"
-      WRITE_STRING_ONE_MODIFIER: "{$writeString({$ some random string $}) | upper}"
+      STRING_ESCAPE: "\{$ some random string $\}"
+      STRING_ESCAPE_ONE_MODIFIER: "{\{$ some random string $\} | upper}"
 
-      WRITE_STRING_COMPLEX: "{$writeString({$)}generateRandomString(20){$writeString(})}"
+      WRITE_STRING_COMPLEX: "\{$generateRandomString(20)\}"
       # modifier should work with space between first 2 braces, but not without it (at that point, it would consider first brace as an escape character)
-      WRITE_STRING_COMPLEX_ONE_MODIFIER: "{ {$writeString({$)}generateRandomString(20){$writeString(})} | upper}"
-      WRITE_STRING_COMPLEX_ONE_MODIFIER_NO_SPACE: "{{$writeString({$)}generateRandomString(20){$writeString(})} | upper}"
+      WRITE_STRING_COMPLEX_ONE_MODIFIER: "{ \{$generateRandomString(20)\} | upper}"
+      WRITE_STRING_COMPLEX_ONE_MODIFIER_NO_SPACE: "{\{$generateRandomString(20)\} | upper}"
 
       FUNCTION_ONE_MODIFIER: "{$generateRandomString(20) | upper}"
       FUNCTION_TWO_MODIFIERS: "{$generateRandomString(20) | upper | sha512}"
@@ -57,7 +64,7 @@ services:
 
       QUAD_NESTED_FUNCTIONS: "{$namedString(megaNestedString, {$generateRandomString({$generateRandomInt({$generateRandomInt(10, 50)}, {$generateRandomInt(51, 100)})})}) | upper}"
 
-      FUNCTION_WITH_SUPPORTED_CHARS: "{$namedString(questionableString, this is a | totally {{ valid string that }} should just work | without any issues !@#$%^&*_+{{}}:|?><) | upper}"
+      FUNCTION_WITH_SUPPORTED_CHARS: "{$namedString(questionableString, this is a | totally \{ valid string that \} should just work | without any issues \\/!@#$%^&*_+\{\}:|?><) | upper}"
 
       CURRENT_DATE: "{$getDatetime(DD.MM.YYYY)}"
       CURRENT_DATE_TIME: "{$getDatetime(DD.MM.YYYY HH:mm:ss)}"
@@ -83,7 +90,7 @@ services:
         this thing will break
         its quite sad
         but it's the truth,
-        unless we escape it {{}
+        unless we escape it \{
 
       BROKEN_KEY_END: |
         I think this wont work
