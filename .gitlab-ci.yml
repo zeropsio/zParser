@@ -1,0 +1,9 @@
+stages:
+  - tests
+
+unit:
+  tags:
+    - golang182
+  stage: tests
+  script:
+    - go test ./...

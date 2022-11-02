@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -220,12 +221,22 @@ func (p *ImportParser) Parse() error {
 }
 
 func (p *ImportParser) fmtErr(prev, curr rune, err error) error {
-	// TODO(ms): use meta errors instead of newlines
-	paramStr := ""
-	for i, parameter := range p.currentItem.parameters {
-		paramStr += fmt.Sprintf("\nparam %d: `%s`", i+1, parameter)
+	meta := map[string][]string{
+		"line":             {strconv.Itoa(p.currentLine)},
+		"column":           {strconv.Itoa(p.currentChar)},
+		"near":             {fmt.Sprintf("%c%c", prev, curr)},
+		"functionCalls":    {strconv.Itoa(p.functionCount)},
+		"maxFunctionCalls": {strconv.Itoa(p.maxFunctionCount)},
 	}
-	return fmt.Errorf("error: %w\nline: %d\ncol: %d\nnear: `%c%c`\nprocessing: `%s`%s", err, p.currentLine, p.currentChar, prev, curr, p.currentItem.name, paramStr)
+
+	if p.currentItem != nil {
+		meta["processing"] = []string{p.currentItem.name}
+		for i, parameter := range p.currentItem.parameters {
+			meta["param"+strconv.Itoa(i+1)] = []string{parameter}
+		}
+	}
+
+	return NewMetaError(err, meta)
 }
 
 // counts amount of indentation characters on one line

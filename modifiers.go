@@ -15,6 +15,10 @@ import (
 	"golang.org/x/text/language"
 )
 
+// TODO(ms): test and choose better bcrypt and argon parameters
+//  - one password hash should take about 300ms with bcrypt
+//  - argon2id hashing may be faster than bcrypt (no need for 300ms), but must use more memory
+
 type modifyFunc func(in string) (string, error)
 
 type Modifiers struct {

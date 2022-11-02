@@ -12,7 +12,6 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/bykof/gostradamus"
 	"golang.org/x/crypto/ssh"
@@ -78,19 +77,36 @@ func NewFunctions() *Functions {
 			return "", err
 		}
 
-		pubKey, privKey, _ := ed25519.GenerateKey(rand.Reader)
-		publicKey, _ := ssh.NewPublicKey(pubKey)
+		publicKey, privateKey, _ := ed25519.GenerateKey(rand.Reader)
 
-		pemKey := &pem.Block{
-			Type:  "OPENSSH PRIVATE KEY",
-			Bytes: util.MarshalED25519PrivateKey(privKey), // <- marshals ed25519 correctly
+		privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+		if err != nil {
+			return "", err
 		}
-		privateKey := pem.EncodeToMemory(pemKey)
-		authorizedKey := ssh.MarshalAuthorizedKey(publicKey)
+		publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+		if err != nil {
+			return "", err
+		}
+
+		privatePem := &pem.Block{
+			Type:  "PRIVATE KEY",
+			Bytes: privateKeyBytes,
+		}
+		privateOpenSshPem := &pem.Block{
+			Type:  "OPENSSH PRIVATE KEY",
+			Bytes: util.MarshalED25519PrivateKey(privateKey), // <- marshals ed25519 correctly
+		}
+		publicPem := &pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: publicKeyBytes,
+		}
+		publicSshKey, _ := ssh.NewPublicKey(publicKey)
 
 		name := param[0]
-		y.namedValues[name+"Public"] = strings.TrimSpace(string(authorizedKey))
-		y.namedValues[name+"Private"] = strings.TrimSpace(string(privateKey))
+		y.namedValues[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
+		y.namedValues[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
+		y.namedValues[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
+		y.namedValues[name+"PrivateSsh"] = strings.TrimSpace(string(pem.EncodeToMemory(privateOpenSshPem)))
 
 		return y.namedValues[name+"Public"], nil
 	}
@@ -104,18 +120,31 @@ func NewFunctions() *Functions {
 		if err != nil {
 			return "", err
 		}
-		publicKey, _ := ssh.NewPublicKey(privKey.Public())
 
-		pemKey := &pem.Block{
-			Type:  "RSA PRIVATE KEY",                    // "PRIVATE KEY"
-			Bytes: x509.MarshalPKCS1PrivateKey(privKey), // x509.MarshalPKCS8PrivateKey
+		privKeyBytes, err := x509.MarshalPKCS8PrivateKey(privKey)
+		if err != nil {
+			return "", err
 		}
-		privateKey := pem.EncodeToMemory(pemKey)
-		authorizedKey := ssh.MarshalAuthorizedKey(publicKey)
+		privPemKey := &pem.Block{
+			Type:  "PRIVATE KEY",
+			Bytes: privKeyBytes,
+		}
+
+		pubKeyBytes, err := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
+		if err != nil {
+			return "", err
+		}
+		pubPemKey := &pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: pubKeyBytes,
+		}
+
+		sshPubKey, _ := ssh.NewPublicKey(privKey.Public())
 
 		name := param[0]
-		y.namedValues[name+"Public"] = strings.TrimSpace(string(authorizedKey))
-		y.namedValues[name+"Private"] = strings.TrimSpace(string(privateKey))
+		y.namedValues[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(pubPemKey)))
+		y.namedValues[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privPemKey)))
+		y.namedValues[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(sshPubKey)))
 
 		return y.namedValues[name+"Public"], nil
 	}
@@ -196,75 +225,12 @@ func mercuryInRetrograde(param ...string) (string, error) {
 		return "", err
 	}
 
-	type dateRange struct {
-		begin []int
-		end   []int
+	yes, err := util.MercuryInRetrograde()
+	if err != nil {
+		return "", err
 	}
-
-	dates := map[int][]dateRange{
-		2022: {
-			dateRange{begin: []int{14, 1, 2022}, end: []int{3, 2, 2022}},
-			dateRange{begin: []int{10, 5, 2022}, end: []int{3, 6, 2022}},
-			dateRange{begin: []int{9, 9, 2022}, end: []int{2, 10, 2022}},
-			dateRange{begin: []int{29, 12, 2022}, end: []int{18, 1, 2023}},
-		},
-		2023: {
-			dateRange{begin: []int{29, 12, 2022}, end: []int{18, 1, 2023}},
-			dateRange{begin: []int{21, 4, 2023}, end: []int{14, 5, 2023}},
-			dateRange{begin: []int{23, 8, 2023}, end: []int{15, 9, 2023}},
-			dateRange{begin: []int{13, 12, 2023}, end: []int{1, 1, 2024}},
-		},
-		2024: {
-			dateRange{begin: []int{1, 4, 2024}, end: []int{25, 4, 2024}},
-			dateRange{begin: []int{4, 8, 2024}, end: []int{28, 8, 2024}},
-			dateRange{begin: []int{25, 11, 2024}, end: []int{15, 12, 2024}},
-		},
-		2025: {
-			dateRange{begin: []int{25, 2, 2025}, end: []int{20, 3, 2025}},
-			dateRange{begin: []int{29, 6, 2025}, end: []int{23, 7, 2025}},
-			dateRange{begin: []int{24, 10, 2025}, end: []int{13, 11, 2025}},
-		},
-		2026: {
-			dateRange{begin: []int{25, 2, 2026}, end: []int{203, 3, 2026}},
-			dateRange{begin: []int{29, 6, 2026}, end: []int{23, 7, 2026}},
-			dateRange{begin: []int{24, 10, 2026}, end: []int{13, 11, 2026}},
-		},
-		2027: {
-			dateRange{begin: []int{9, 2, 2027}, end: []int{3, 3, 2027}},
-			dateRange{begin: []int{10, 6, 2027}, end: []int{4, 7, 2027}},
-			dateRange{begin: []int{7, 10, 2027}, end: []int{28, 10, 2027}},
-		},
-		2028: {
-			dateRange{begin: []int{24, 1, 2028}, end: []int{14, 2, 2028}},
-			dateRange{begin: []int{21, 5, 2028}, end: []int{13, 6, 2028}},
-			dateRange{begin: []int{19, 9, 2028}, end: []int{11, 10, 2028}},
-		},
-		2029: {
-			dateRange{begin: []int{7, 1, 2029}, end: []int{27, 1, 2029}},
-			dateRange{begin: []int{1, 5, 2029}, end: []int{25, 5, 2029}},
-			dateRange{begin: []int{2, 9, 2029}, end: []int{24, 9, 2029}},
-			dateRange{begin: []int{21, 12, 2029}, end: []int{10, 1, 2030}},
-		},
-		2030: {
-			dateRange{begin: []int{21, 12, 2029}, end: []int{10, 1, 2030}},
-			dateRange{begin: []int{12, 4, 2030}, end: []int{6, 5, 2030}},
-			dateRange{begin: []int{15, 8, 2030}, end: []int{8, 9, 2030}},
-			dateRange{begin: []int{5, 12, 2030}, end: []int{25, 12, 2030}},
-		},
+	if yes {
+		return param[0], nil
 	}
-
-	now := time.Now()
-	d, found := dates[now.Year()]
-	if !found {
-		return fmt.Sprintf("current year [%d] is not supported, latest supported year was [%d]", now.Year(), 2030), nil
-	}
-
-	for _, dateR := range d {
-		if now.After(time.Date(dateR.begin[2], time.Month(dateR.begin[1]), dateR.begin[0], 0, 0, 0, 0, time.UTC)) &&
-			now.Before(time.Date(dateR.end[2], time.Month(dateR.end[1]), dateR.end[0], 0, 0, 0, 0, time.UTC)) {
-			return param[0], nil
-		}
-	}
-
 	return param[1], nil
 }

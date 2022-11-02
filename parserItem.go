@@ -48,7 +48,8 @@ func newItemWrap(r rune, parent *itemWrap, indentChar rune, indentCount int) *it
 	if r == funcStartChar {
 		item.t = itemTypeFunction
 		item.parameters = make([]string, 1, 2)
-	} else {
+	} else if r != 0 {
+		// if r == 0 do not add it to the name, or we will create documents with NULL bytes inside od them!
 		item.name = string(r)
 	}
 	return item

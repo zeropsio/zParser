@@ -32,7 +32,6 @@ services:
       ESCAPE_TEST_WITH_ITEM: "\\{ sTriNG \\ witH, mOdiFiers | title }\\"
 
       FUNCTION_WITH_ENV_SYNTAX: "{$namedString(envString, this is a named string that contains { ${my_env} } env syntax using escaping)}"
-      FUNCTION_WITH_COMMA_IN_PARAM: "{$namedString(commaString, this is a named string{,} that contains some lovely commas{,} what do you think?)}"
       FUNCTION_WITH_ESCAPING_IN_PARAM: "{$namedString(commaString, this is a named string\, that contains some lovely commas\, and closing braces \) and backslashes \\ what do you think?)}"
 
       STRING_ONE_MODIFIER: "{my super cool string | upper}"
@@ -45,9 +44,7 @@ services:
       STRING_ESCAPE_ONE_MODIFIER: "{\{$ some random string $\} | upper}"
 
       WRITE_STRING_COMPLEX: "\{$generateRandomString(20)\}"
-      # modifier should work with space between first 2 braces, but not without it (at that point, it would consider first brace as an escape character)
-      WRITE_STRING_COMPLEX_ONE_MODIFIER: "{ \{$generateRandomString(20)\} | upper}"
-      WRITE_STRING_COMPLEX_ONE_MODIFIER_NO_SPACE: "{\{$generateRandomString(20)\} | upper}"
+      WRITE_STRING_COMPLEX_ONE_MODIFIER: "{\{$generateRandomString(20)\} | upper}"
 
       FUNCTION_ONE_MODIFIER: "{$generateRandomString(20) | upper}"
       FUNCTION_TWO_MODIFIERS: "{$generateRandomString(20) | upper | sha512}"
@@ -73,12 +70,21 @@ services:
       PASSWORD_BCRYPT: "{$getNamedString(myPassword) | bcrypt}"
       PASSWORD_ARGON2: "{$getNamedString(myPassword) | argon2id}"
 
-      ED25519_KEY_PUB: "{$generateED25519Key(myED25519Key)}"
+      ED25519_KEY_PUB: |
+        {$generateED25519Key(myED25519Key)}
+
+      ED25519_KEY_PUB_SSH: "{$getNamedString(myED25519KeyPublicSsh)}"
 
       ED25519_KEY_PRIVATE: |
         {$getNamedString(myED25519KeyPrivate)}
 
-      RSA_KEY_PUB: "{$generateRSA4096Key(myRSA4096Key)}"
+      ED25519_KEY_PRIVATE_SSH: |
+        {$getNamedString(myED25519KeyPrivateSsh)}
+
+      RSA_KEY_PUB: |
+        {$generateRSA4096Key(myRSA4096Key)}
+
+      RSA_KEY_PUB_SSH: "{$getNamedString(myRSA4096KeyPublicSsh)}"
 
       RSA_KEY_PRIVATE: |
         {$getNamedString(myRSA4096KeyPrivate)}
