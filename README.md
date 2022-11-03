@@ -59,7 +59,7 @@ Output
 Characters can be escaped using backslash `\`. This also means it is mandatory to escape `\` like so `\\` for it to be
 printed out.
 
-One caveat is usage in languages like YAML. If used inside YAML's quoted strings, all backslashes `\` must be escaped
+⚠️ One caveat is usage in languages like YAML. If used inside YAML's quoted strings, all backslashes `\` MUST be escaped
 twice (`\\\\` instead of `\\`).  
 This is needed so backslash is preserved through both YPARS and YAML parsing (as both remove one `\`).
 
@@ -172,6 +172,8 @@ Generates random string in requested length
 
 </details>
 
+---
+
 ### `generateRandomInt(min, max)`
 
 Generates random `int` in range `[min, max]`
@@ -192,6 +194,8 @@ Generates random `int` in range `[min, max]`
 | `{$generateRandomInt(0, 999999)}` | 6659   |
 
 </details>
+
+---
 
 ### `generateRandomNamedString(name, length)`
 
@@ -217,6 +221,8 @@ Any content that already existed under provided name is overwritten.
 | `{$getNamedString(my15CharString)}`                | yhaKq7gyPoiVhwL                |
 
 </details>
+
+---
 
 ### `namedString(name, content)`
 
@@ -244,6 +250,8 @@ Any content that already existed under provided name is overwritten.
 
 </details>
 
+---
+
 ### `getNamedString(name)`
 
 Returns content stored under provided name.
@@ -264,6 +272,8 @@ If no content was stored under provided name, error is returned.
 | `{$getNamedString(nonExistingString)}`      | `parsing will fail with an error`    |
 
 </details>
+
+---
 
 ### `getDateTime(format)`
 
@@ -314,11 +324,13 @@ Returns current date and time in specified format.
 
 </details>
 
+---
+
 ### generateED25519Key(name)
 
-Generates Public and Private ED25519 key pairs and stores them for later use under name+suffix.
+Generates Public and Private `ED25519` key pairs and stores them for later use under `name`+`version suffix`.
 
-Function produces strings with newline characters and MUST be used with Literal scalar style.
+⚠️ Function produces strings with newline characters and MUST be used with Literal scalar style in YAML.
 Same goes for retrieval of stored key parts except public ssh key which is in one line. See example.
 <details>
 
@@ -381,11 +393,13 @@ Output
 
 </details>
 
+---
+
 ### generateRSA4096Key(name)
 
-Generates Public and Private RSA 4096bit key pairs and stores them for later use under `name`+`suffix`.
+Generates Public and Private `RSA` `4096bit` key pairs and stores them for later use under `name`+`version suffix`.
 
-Function produces strings with newline characters and MUST be used with Literal scalar style.
+⚠️ Function produces strings with newline characters and MUST be used with Literal scalar style in YAML.
 Same goes for retrieval of stored key parts except public ssh key which is in one line. See example.
 <details>
 
