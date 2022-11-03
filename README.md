@@ -59,6 +59,10 @@ Output
 Characters can be escaped using backslash `\`. This also means it is mandatory to escape `\` like so `\\` for it to be
 printed out.
 
+One caveat is usage in languages like YAML. If used inside YAML's quoted strings, all backslashes `\` must be escaped
+twice (`\\\\` instead of `\\`).  
+This is needed so backslash is preserved through both YPARS and YAML parsing (as both remove one `\`).
+
 <details>
 <summary>Example</summary>
 
@@ -66,16 +70,27 @@ Input
 
 ```yaml
   ESCAPED_NESTED_FUNCTIONS: "\{$generateRandomString(\{$generateRandomInt(10, 50)\})\}"
-  ESCAPE_TEST: "\{ \{\\ \\\\ \\\{ {\\} \\\} \\\\ \\\} \}"
-  ESCAPE_TEST_WITH_ITEM: "\\{ sTriNG \\ witH, mOdiFiers | title }\\"
+  ESCAPE_TEST: "\{ \{\\\\ \\\\\\\\ \\\\\{ {\\\\} \\\\\} \\\\\\\\ \\\\\} \}"
+  ESCAPE_TEST_WITH_ITEM: "\\\\{ sTriNG \\\\ witH, mOdiFiers | title }\\\\"
 ```
 
 Output
 
 ```yaml
   ESCAPED_NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
-  ESCAPE_TEST: "{ {\ \\ \{ \ \} \\ \} }"
-  ESCAPE_TEST_WITH_ITEM: "\STriNG \ WitH, MOdiFiers\"
+  ESCAPE_TEST: "{ {\\ \\\\ \\{ \\ \\} \\\\ \\} }"
+  ESCAPE_TEST_WITH_ITEM: "\\STriNG \\ WitH, MOdiFiers\\"
+```
+
+Double escaping example
+
+```yaml
+    # Here is how following string will look like
+    - "\{ \{\\\\ \\\\\\\\ \\\\\{ {\\\\} \\\\\} \\\\\\\\ \\\\\} \}"
+    # - after our parsing
+    - "{ {\\ \\\\ \\{ \\ \\} \\\\ \\} }"
+    # - after additional yaml parsing
+    - "{ {\ \\ \{ \ \} \\ \} }"
 ```
 
 </details>

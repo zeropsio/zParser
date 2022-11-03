@@ -28,11 +28,11 @@ services:
       NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
 
       ESCAPED_NESTED_FUNCTIONS: "\{$generateRandomString(\{$generateRandomInt(10, 50)\})\}"
-      ESCAPE_TEST: "\{ \{\\ \\\\ \\\{ {\\} \\\} \\\\ \\\} \}"
-      ESCAPE_TEST_WITH_ITEM: "\\{ sTriNG \\ witH, mOdiFiers | title }\\"
+      ESCAPE_TEST: "\{ \{\\\\ \\\\\\\\ \\\\\{ {\\\\} \\\\\} \\\\\\\\ \\\\\} \}"
+      ESCAPE_TEST_WITH_ITEM: "\\\\{ sTriNG \\\\ witH, mOdiFiers | title }\\\\"
 
       FUNCTION_WITH_ENV_SYNTAX: "{$namedString(envString, this is a named string that contains { ${my_env} } env syntax using escaping)}"
-      FUNCTION_WITH_ESCAPING_IN_PARAM: "{$namedString(commaString, this is a named string\, that contains some lovely commas\, and closing braces \) and backslashes \\ what do you think?)}"
+      FUNCTION_WITH_ESCAPING_IN_PARAM: "{$namedString(commaString, this is a named string\, that contains some lovely commas\, and closing braces \) and backslashes \\\\ what do you think?)}"
 
       STRING_ONE_MODIFIER: "{my super cool string | upper}"
       STRING_TWO_MODIFIERS: "{my super cool string | upper | sha512}"
@@ -60,7 +60,7 @@ services:
 
       QUAD_NESTED_FUNCTIONS: "{$namedString(megaNestedString, {$generateRandomString({$generateRandomInt({$generateRandomInt(10, 50)}, {$generateRandomInt(51, 100)})})}) | upper}"
 
-      FUNCTION_WITH_SUPPORTED_CHARS: "{$namedString(questionableString, this is a | totally \{ valid string that \} should just work | without any issues \\/!@#$%^&*_+\{\}:|?><) | upper}"
+      FUNCTION_WITH_SUPPORTED_CHARS: "{$namedString(questionableString, this is a | totally \{ valid string that \} should just work | without any issues \\\\/!@#$%^&*_+\{\}:|?><) | upper}"
 
       CURRENT_DATE: "{$getDatetime(DD.MM.YYYY)}"
       CURRENT_DATE_TIME: "{$getDatetime(DD.MM.YYYY HH:mm:ss)}"

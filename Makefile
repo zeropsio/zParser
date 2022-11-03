@@ -13,3 +13,9 @@ buildMac:
 
 test:
 	go test ./src/...
+
+exampleStdout:
+	./bin/yamlParser-linux-amd64 ./example.yml
+
+example:
+	./bin/yamlParser-linux-amd64 ./example.yml -f example.parsed.yml
