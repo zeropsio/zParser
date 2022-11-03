@@ -6,4 +6,4 @@ unit:
     - golang182
   stage: tests
   script:
-    - make test
+    - go test ./src/...
