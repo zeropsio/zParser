@@ -1,0 +1,178 @@
+project:
+  name: yaml parser test
+services:
+  - hostname: "1a123d56a506e8b6c5a1"
+    envVariables:
+      NORMAL_ENV: ${MY_COOL_ENV}
+      NORMAL_ENV_IN_QUOTES: "${MY_COOL_QUOTED_ENV}"
+      MULTIPLE_NESTED_ENVS: "${my_e${my_e${my_env}nv}nv}"
+
+      ESCAPED_VALUE: "{MY_ESCAPED_VALUE"
+      ESCAPED_VALUE_2: "{MY_ESCAPED_VALUE}"
+      ESCAPED_VALUE_DOUBLE: "{{MY_ESCAPED_VALUE"
+      ESCAPED_VALUE_DOUBLE_2: "{{MY_ESCAPED_VALUE}}"
+
+      STRING_WITH_ENV_INSIDE: "my super cool string with ${myEnvVar} inside for whatever reason"
+
+      MULTI_LINE_STRING: |
+        {ESC
+         APED
+         MULTI L
+         INE
+         STRING
+        }
+
+      ONE_FUNCTION: "02b41ebb8691dc7a59b1"
+      TWO_FUNCTIONS: "2c0a0fb155e6966295b76333"
+      NESTED_FUNCTIONS: "c402544866e99d3fabb00f4eb9d8"
+
+      ESCAPED_NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
+      ESCAPE_TEST: "{ {\ \ \\ \{ \ \} \} }\ }"
+      ESCAPE_TEST_WITH_ITEM: "\STriNG \ WitH, MOdiFiers\"
+
+      FUNCTION_WITH_ENV_SYNTAX: "this is a named string that contains ${my_env} env syntax using escaping"
+      FUNCTION_WITH_ESCAPING_IN_PARAM: "this is a named string, that contains some lovely commas, and closing braces ) and backslashes \ what do you think?"
+
+      STRING_ONE_MODIFIER: "MY SUPER COOL STRING"
+      STRING_TWO_MODIFIERS: "d2cf477a090ac90dc70d2a7b19067c7e1b2a9cdbced7c7e28ec505a5dee2984737edd5d19cbbff4734cfe6a240fa3a2d68e7d5884fae353bddf8ca9ec16ac06f"
+
+      NESTED_STRINGS_ONE_MODIFIER: "MY SUPER COOL AND MY NESTED STRINGS"
+      NESTED_STRINGS_ONE_NESTED_MODIFIER: "my super cool AND MY NESTED strings"
+
+      STRING_ESCAPE: "{$ some random string $}"
+      STRING_ESCAPE_ONE_MODIFIER: "{$ SOME RANDOM STRING $}"
+
+      WRITE_STRING_COMPLEX: "{$generateRandomString(20)}"
+      WRITE_STRING_COMPLEX_ONE_MODIFIER: "{$GENERATERANDOMSTRING(20)}"
+
+      FUNCTION_ONE_MODIFIER: "17B3EAF735D9E0161997"
+      FUNCTION_TWO_MODIFIERS: "db3faa1c7b66d0b5326d5f9079cdf122a512a64eac0bf33bdb923822681375587580d659ac1d2bbc33a5d752781b437bde5e6b382052be3f36a5c0b36e37396a"
+
+      NESTED_FUNCTION_ONE_MODIFIER: "03C0044F5D065BAFD2E006EDB8F3EC"
+      NESTED_FUNCTION_TWO_MODIFIERS: "6ffba6b940a3dc9cff61f77f3592515e4be861951afe96b737dcb7d4dc04bc79cc8cd4b45f8877bab105627ee5be8e3cb7dd0156d5c99231185c6ebcd8f7819e"
+
+      NESTED_FUNCTION_ONE_NESTED_MODIFIER: "4F32D451653991DCD0A4"
+      NESTED_FUNCTION_ONE_NESTED_ONE_NORMAL_MODIFIER: "70bfe3c93c5e652919481b57076e98126ef045f67641a7d98d90f94982b1e5ac17acd42fb4c0905b11bf9c9b30cfabc0dec4075f5aecf5e403c9990ce9bfdf45"
+
+      EXISTING_STRING: "4F32D451653991DCD0A4"
+      EXISTING_STRING_ONE_MODIFIER: "4f32d451653991dcd0a4"
+
+      QUAD_NESTED_FUNCTIONS: "9EDFDFA09661504AA9BE06560CBA816918C9AE3D8B2A00BEA92AFD6C08C47A077691D8F5C694EC420D6"
+
+      FUNCTION_WITH_SUPPORTED_CHARS: "THIS IS A | TOTALLY { VALID STRING THAT } SHOULD JUST WORK | WITHOUT ANY ISSUES \/!@#$%^&*_+{}:|?><"
+
+      CURRENT_DATE: "03.11.2022"
+      CURRENT_DATE_TIME: "03.11.2022 13:47:27"
+
+      PASSWORD_PLAIN: "c03e6b888d2f736b7a4accec88edd7"
+      PASSWORD_SHA512: "6c01942c5f700116efb894766eb19702da9a0d6d0ae11cb3614c4c20b595b4afcbae4c861f2901bd84a6998717a1f2451ed0019dfdb6a8205ebb70e760ad6126"
+      PASSWORD_BCRYPT: "$2a$10$o/CpRiwpUWqgTuPWs2Q1ZOePqxxcG5tl9GTXbSGWZQ1fPdLm9XZKW"
+      PASSWORD_ARGON2: "$argon2id$v=19$m=98304,t=1,p=3$ygMKgeZ5d5vvgwy9zJIyKQ$YlOLRsngpJX8AHuL3gVIpJr08ttIAaKRnsbIEnJNKeo"
+
+      ED25519_KEY_PUB: |
+        -----BEGIN PUBLIC KEY-----
+        MCowBQYDK2VwAyEA+GqUsWIRlh6PrPZJlRH6Ub2uEIJObte4Am+2WVEFKYw=
+        -----END PUBLIC KEY-----
+
+      ED25519_KEY_PUB_SSH: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPhqlLFiEZYej6z2SZUR+lG9rhCCTm7XuAJvtllRBSmM"
+
+      ED25519_KEY_PRIVATE: |
+        -----BEGIN PRIVATE KEY-----
+        MC4CAQAwBQYDK2VwBCIEIFxYJ51usLZBbvXgrLd8tDRcID9K01yT7AQQdEv/VpUp
+        -----END PRIVATE KEY-----
+
+      ED25519_KEY_PRIVATE_SSH: |
+        -----BEGIN OPENSSH PRIVATE KEY-----
+        b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtz
+        c2gtZWQyNTUxOQAAACD4apSxYhGWHo+s9kmVEfpRva4Qgk5u17gCb7ZZUQUpjAAA
+        AIiaywRCmssEQgAAAAtzc2gtZWQyNTUxOQAAACD4apSxYhGWHo+s9kmVEfpRva4Q
+        gk5u17gCb7ZZUQUpjAAAAEBcWCedbrC2QW714Ky3fLQ0XCA/StNck+wEEHRL/1aV
+        KfhqlLFiEZYej6z2SZUR+lG9rhCCTm7XuAJvtllRBSmMAAAAAAECAwQF
+        -----END OPENSSH PRIVATE KEY-----
+
+      RSA_KEY_PUB: |
+        -----BEGIN PUBLIC KEY-----
+        MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1kt+7k6lDpK2q3Bz9ivd
+        pDOJ6uumDP4JKQZYR/GICkFG/rE8SL6LE9U5CQqA6GnPOglGHDurm7BizblRU74z
+        z7dofBGLnmCF9RN8ebEswLkpHTbCqouRjLasMo+nagsVddwLX2ghwiui7wTRhPR9
+        sJJiIKfFikYKzzd8ZAqSGVvuNtyOCLGRe++zFhgmjXRAQSELdfcQa1Xab6SYjDwv
+        4csXUpQIcqLE38VmAcnUF1x/V3zYRN8Pb4FlZ7w4lBfJdUkk7IwkpnkrLWG6h8ZZ
+        ZJuSuBox1+sqTboouz+soFOwCpI0GxhRkkIhk/SRjAmz4Eh1nbnPtByNxz6YHVnW
+        tPjfS76epsIB3Lm7qwxFg5wHdNVaOvtor8zPEdH1V+eX3qLjJ86gjQvGAYZoQp48
+        mCK7t5tuDxKyeLds6hzMEQ+zqCOZVHW1eBmHp9UIrvxoAGnEjviVDvRHhL7hX4hj
+        8+P7u+YG/yonsDbMvyh3Y5vOkFQ+rLdaUVFH5SdrXPhHTPM6p8H4Pl30zhmWjsNk
+        vIWc2vd0V4AkT0FFR1Upp6bStFG95RBLmBXdG40jqd+d4DoEi7L7Wj+8PJymqrQH
+        YwOHEw45Tb0HvI5HYHL+l8AH191k8W5eN48QJKbyPv0Dm0OrJPL6Qk/EZugxeXEA
+        Cj9xtpF1jcLViA1VPocp8u8CAwEAAQ==
+        -----END PUBLIC KEY-----
+
+      RSA_KEY_PUB_SSH: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDWS37uTqUOkrarcHP2K92kM4nq66YM/gkpBlhH8YgKQUb+sTxIvosT1TkJCoDoac86CUYcO6ubsGLNuVFTvjPPt2h8EYueYIX1E3x5sSzAuSkdNsKqi5GMtqwyj6dqCxV13AtfaCHCK6LvBNGE9H2wkmIgp8WKRgrPN3xkCpIZW+423I4IsZF777MWGCaNdEBBIQt19xBrVdpvpJiMPC/hyxdSlAhyosTfxWYBydQXXH9XfNhE3w9vgWVnvDiUF8l1SSTsjCSmeSstYbqHxllkm5K4GjHX6ypNuii7P6ygU7AKkjQbGFGSQiGT9JGMCbPgSHWduc+0HI3HPpgdWda0+N9Lvp6mwgHcuburDEWDnAd01Vo6+2ivzM8R0fVX55feouMnzqCNC8YBhmhCnjyYIru3m24PErJ4t2zqHMwRD7OoI5lUdbV4GYen1Qiu/GgAacSO+JUO9EeEvuFfiGPz4/u75gb/KiewNsy/KHdjm86QVD6st1pRUUflJ2tc+EdM8zqnwfg+XfTOGZaOw2S8hZza93RXgCRPQUVHVSmnptK0Ub3lEEuYFd0bjSOp353gOgSLsvtaP7w8nKaqtAdjA4cTDjlNvQe8jkdgcv6XwAfX3WTxbl43jxAkpvI+/QObQ6sk8vpCT8Rm6DF5cQAKP3G2kXWNwtWIDVU+hyny7w=="
+
+      RSA_KEY_PRIVATE: |
+        -----BEGIN PRIVATE KEY-----
+        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
+        Hecg3VlNeOoxlkSI9rNtYTerSVwKn58=
+        -----END PRIVATE KEY-----
+
+      MERCURY_RETROGRADE: "Mercury Is Not In Retrograde"
+
+      BROKEN_KEY_START: |
+        this thing will break
+        its quite sad
+        but it's the truth,
+        unless we escape it {
+
+      BROKEN_KEY_END: |
+        I think this wont work
+        but just in case...
+        Maybe escaping
+        using curly braces
+        is the norm }

@@ -1,0 +1,105 @@
+project:
+  name: yaml parser test
+services:
+  - hostname: "{$generateRandomString(20)}"
+    envVariables:
+      NORMAL_ENV: ${MY_COOL_ENV}
+      NORMAL_ENV_IN_QUOTES: "${MY_COOL_QUOTED_ENV}"
+      MULTIPLE_NESTED_ENVS: "${my_e${my_e${my_env}nv}nv}"
+
+      ESCAPED_VALUE: "{{MY_ESCAPED_VALUE}}"
+      ESCAPED_VALUE_2: "\{MY_ESCAPED_VALUE\}"
+      ESCAPED_VALUE_DOUBLE: "{{{MY_ESCAPED_VALUE}}}"
+      ESCAPED_VALUE_DOUBLE_2: "\{\{MY_ESCAPED_VALUE\}\}"
+
+      STRING_WITH_ENV_INSIDE: "{my super cool string with ${myEnvVar} inside for whatever reason | noop}"
+
+      MULTI_LINE_STRING: |
+        \{{ ESC
+         apEd
+         Multi L
+         ine
+         STRING
+         | upper}
+        }
+
+      ONE_FUNCTION: "{$generateRandomString(20)}"
+      TWO_FUNCTIONS: "{$generateRandomString(20)}{$generateRandomInt(1, 9999)}"
+      NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
+
+      ESCAPED_NESTED_FUNCTIONS: "\{$generateRandomString(\{$generateRandomInt(10, 50)\})\}"
+      ESCAPE_TEST: "\{ \{\\ \\ \\\\ \\\{ {\\} \\\} \\} \}\\ \}"
+      ESCAPE_TEST_WITH_ITEM: "\\{ sTriNG \\ witH, mOdiFiers | title }\\"
+
+      FUNCTION_WITH_ENV_SYNTAX: "{$namedString(envString, this is a named string that contains { ${my_env} } env syntax using escaping)}"
+      FUNCTION_WITH_ESCAPING_IN_PARAM: "{$namedString(commaString, this is a named string\, that contains some lovely commas\, and closing braces \) and backslashes \\ what do you think?)}"
+
+      STRING_ONE_MODIFIER: "{my super cool string | upper}"
+      STRING_TWO_MODIFIERS: "{my super cool string | upper | sha512}"
+
+      NESTED_STRINGS_ONE_MODIFIER: "{my super cool { and my nested } strings | upper}"
+      NESTED_STRINGS_ONE_NESTED_MODIFIER: "{my super cool { And My NeStED | upper } strings}"
+
+      STRING_ESCAPE: "\{$ some random string $\}"
+      STRING_ESCAPE_ONE_MODIFIER: "{\{$ some random string $\} | upper}"
+
+      WRITE_STRING_COMPLEX: "\{$generateRandomString(20)\}"
+      WRITE_STRING_COMPLEX_ONE_MODIFIER: "{\{$generateRandomString(20)\} | upper}"
+
+      FUNCTION_ONE_MODIFIER: "{$generateRandomString(20) | upper}"
+      FUNCTION_TWO_MODIFIERS: "{$generateRandomString(20) | upper | sha512}"
+
+      NESTED_FUNCTION_ONE_MODIFIER: "{$generateRandomString({$generateRandomInt(10, 50)}) | upper}"
+      NESTED_FUNCTION_TWO_MODIFIERS: "{$generateRandomString({$generateRandomInt(10, 50)}) | upper | sha512}"
+
+      NESTED_FUNCTION_ONE_NESTED_MODIFIER: "{$namedString(myRandomString, {$generateRandomString(20) | upper})}"
+      NESTED_FUNCTION_ONE_NESTED_ONE_NORMAL_MODIFIER: "{$namedString(myAnotherRandomString, {$generateRandomString(20) | upper}) | sha512}"
+
+      EXISTING_STRING: "{$getNamedString(myRandomString)}"
+      EXISTING_STRING_ONE_MODIFIER: "{$getNamedString(myRandomString) | lower}"
+
+      QUAD_NESTED_FUNCTIONS: "{$namedString(megaNestedString, {$generateRandomString({$generateRandomInt({$generateRandomInt(10, 50)}, {$generateRandomInt(51, 100)})})}) | upper}"
+
+      FUNCTION_WITH_SUPPORTED_CHARS: "{$namedString(questionableString, this is a | totally \{ valid string that \} should just work | without any issues \\/!@#$%^&*_+\{\}:|?><) | upper}"
+
+      CURRENT_DATE: "{$getDatetime(DD.MM.YYYY)}"
+      CURRENT_DATE_TIME: "{$getDatetime(DD.MM.YYYY HH:mm:ss)}"
+
+      PASSWORD_PLAIN: "{$generateRandomNamedString(myPassword, 30)}"
+      PASSWORD_SHA512: "{$getNamedString(myPassword) | sha512}"
+      PASSWORD_BCRYPT: "{$getNamedString(myPassword) | bcrypt}"
+      PASSWORD_ARGON2: "{$getNamedString(myPassword) | argon2id}"
+
+      ED25519_KEY_PUB: |
+        {$generateED25519Key(myED25519Key)}
+
+      ED25519_KEY_PUB_SSH: "{$getNamedString(myED25519KeyPublicSsh)}"
+
+      ED25519_KEY_PRIVATE: |
+        {$getNamedString(myED25519KeyPrivate)}
+
+      ED25519_KEY_PRIVATE_SSH: |
+        {$getNamedString(myED25519KeyPrivateSsh)}
+
+      RSA_KEY_PUB: |
+        {$generateRSA4096Key(myRSA4096Key)}
+
+      RSA_KEY_PUB_SSH: "{$getNamedString(myRSA4096KeyPublicSsh)}"
+
+      RSA_KEY_PRIVATE: |
+        {$getNamedString(myRSA4096KeyPrivate)}
+
+      MERCURY_RETROGRADE: "{$mercuryInRetrograde(mercury is in retrograde, mercury is not in retrograde) | title}"
+
+      BROKEN_KEY_START: |
+        this thing will break
+        its quite sad
+        but it's the truth,
+        unless we escape it \{
+
+      BROKEN_KEY_END: |
+        I think this wont work
+        but just in case...
+        Maybe escaping
+        using curly braces
+        is the norm }
