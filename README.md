@@ -66,7 +66,7 @@ Input
 
 ```yaml
   ESCAPED_NESTED_FUNCTIONS: "\{$generateRandomString(\{$generateRandomInt(10, 50)\})\}"
-  ESCAPE_TEST: "\{ \{\\ \\ \\\\ \\\{ {\\} \\\} \\} \}\\ \}"
+  ESCAPE_TEST: "\{ \{\\ \\\\ \\\{ {\\} \\\} \\\\ \\\} \}"
   ESCAPE_TEST_WITH_ITEM: "\\{ sTriNG \\ witH, mOdiFiers | title }\\"
 ```
 
@@ -74,7 +74,7 @@ Output
 
 ```yaml
   ESCAPED_NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
-  ESCAPE_TEST: "{ {\ \ \\ \{ \ \} \} }\ }"
+  ESCAPE_TEST: "{ {\ \\ \{ \ \} \\ \} }"
   ESCAPE_TEST_WITH_ITEM: "\STriNG \ WitH, MOdiFiers\"
 ```
 
