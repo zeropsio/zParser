@@ -54,6 +54,32 @@ Output
 
 </details>
 
+### Escaping
+
+Characters can be escaped using backslash `\`. This also means it is mandatory to escape `\` like so `\\` for it to be
+printed out.
+
+<details>
+<summary>Example</summary>
+
+Input
+
+```yaml
+  ESCAPED_NESTED_FUNCTIONS: "\{$generateRandomString(\{$generateRandomInt(10, 50)\})\}"
+  ESCAPE_TEST: "\{ \{\\ \\ \\\\ \\\{ {\\} \\\} \\} \}\\ \}"
+  ESCAPE_TEST_WITH_ITEM: "\\{ sTriNG \\ witH, mOdiFiers | title }\\"
+```
+
+Output
+
+```yaml
+  ESCAPED_NESTED_FUNCTIONS: "{$generateRandomString({$generateRandomInt(10, 50)})}"
+  ESCAPE_TEST: "{ {\ \ \\ \{ \ \} \} }\ }"
+  ESCAPE_TEST_WITH_ITEM: "\STriNG \ WitH, MOdiFiers\"
+```
+
+</details>
+
 ## Usage
 
 ### As a package
@@ -474,12 +500,12 @@ Returns first parameter if Mercury IS in retrograde or second if it is not.
 
 ### Bcrypt configuration
 
-- cost: 10
+- cost: `10`
 
 ### Argon2id configuration
 
-- saltLen: 16B
-- memory: 96MiB
-- iterations: 1
-- parallelism: 3
-- keyLength: 32
+- saltLen: `16B`
+- memory: `96MiB`
+- iterations: `1`
+- parallelism: `3`
+- keyLength: `32B`
