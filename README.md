@@ -128,9 +128,9 @@ func main() {
 
 #### Error handling
 
-Package returns standard `error` or a [`MetaError`](./src/metaError/errors.go) that contains metadata in following format `map[string][]string`
+`Parse` function returns standard `error` or a [`MetaError`](./src/metaError/errors.go) that contains metadata in following format `map[string][]string`
 
-Standard metaData fields include
+Standard `metaData` fields (always present):
 
 | keyName            | desc                                                         |
 |--------------------|--------------------------------------------------------------|
@@ -141,13 +141,63 @@ Standard metaData fields include
 | positionLine       | line at which the error occurred                             |
 | positionNear       | last 2 characters that were being parsed when error occurred |
 
-Following fields are set only when error occurred during item parsing
+Following fields are set only when error occurred during item parsing:
 
 | keyName    | desc                                                              |
 |------------|-------------------------------------------------------------------|
 | item       | name of the processed function or content of the processed string |
 | itemParams | if itemType is function, all parsed params will be in this field  |
 | itemType   | type of the processed item, one of: `string, function`            |
+
+
+<details>
+<summary>Example</summary>
+
+```go
+map[
+    functionCalls:[66]
+    functionCallsLimit:[200]
+    item:[mercuryInRetrograde]
+    itemParams:[mercury is in retrograde mercury is not in retrograde my third unexpected param]
+    itemType:[function]
+    positionColumn:[140]
+    positionLine:[92]
+    positionNear:[e>]
+]
+```
+
+Json formatted
+```json
+{
+  "functionCalls": [
+    "66"
+  ],
+  "functionCallsLimit": [
+    "200"
+  ],
+  "item": [
+    "mercuryInRetrograde"
+  ],
+  "itemParams": [
+    "mercury is in retrograde",
+    "mercury is not in retrograde",
+    "my third unexpected param"
+  ],
+  "itemType": [
+    "function"
+  ],
+  "positionColumn": [
+    "140"
+  ],
+  "positionLine": [
+    "92"
+  ],
+  "positionNear": [
+    "e>"
+  ]
+}
+```
+</details>
 
 
 ### As a binary
