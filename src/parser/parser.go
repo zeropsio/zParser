@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -169,30 +170,9 @@ func (p *Parser) Parse() error {
 				return nil // eat |
 			}
 
-			switch p.currentItem.currSection {
-			case itemSectionName:
-				p.currentItem.name += string(r)
-			case itemSectionParameters:
-				if len(p.currentItem.parameters) < p.currentItem.currParam+1 {
-					p.currentItem.parameters = append(p.currentItem.parameters, string(r))
-				} else {
-					p.currentItem.parameters[p.currentItem.currParam] += string(r)
-				}
-			case itemSectionModifiers:
-				// this prevents issues with spaces between function closing parentheses and first |
-				if p.currentItem.currModifier == -1 {
-					return nil
-				}
-				if len(p.currentItem.modifiers) < p.currentItem.currModifier+1 {
-					p.currentItem.modifiers = append(p.currentItem.modifiers, string(r))
-				} else {
-					p.currentItem.modifiers[p.currentItem.currModifier] += string(r)
-				}
-			}
-
-			return nil
+			return p.currentItem.AddRune(r)
 		}()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -271,22 +251,20 @@ func (p *Parser) initializeItem(r rune) {
 	p.currentItem = item
 }
 
-// Processes currentItem
-//
+// Processes currentItem.
 // If it's itemTypeFunction, underlying function is called, otherwise "name" of the currentItem is used as output,
 // which is then run through all provided modifyFunc and written to
-//   - output if parent of currentItem is nil
+//  1. output if parent of currentItem is nil
 //     - if currentItem is itemTypeFunction, all newlines have indentation adjusted
-//       to be the same as the beginning of the line the function was declared on
-//   - current parameter of parent of currentItem if it's a itemTypeFunction
-//   - name of the parent of currentItem if it's a itemTypeString
+//     to be the same as the beginning of the line the function was declared on
+//  2. current parameter of parent of currentItem if it's a itemTypeFunction
+//  3. name of the parent of currentItem if it's a itemTypeString
+//
 // currentItem is set to nil if it has no parent, or to the parent
 func (p *Parser) processCurrentItem() error {
 	if p.currentItem == nil {
 		return nil
 	}
-
-	p.currentItem.name = strings.TrimSpace(p.currentItem.name)
 
 	addIndent := false // whether indentation should be added to the output - used only for functions (they may generate multiline output)
 	out := ""
@@ -295,12 +273,8 @@ func (p *Parser) processCurrentItem() error {
 		if err := p.incrementFunctionCount(); err != nil {
 			return err
 		}
-		// remove spaces from parameters, otherwise spaces between commas would break things
-		for i, parameter := range p.currentItem.parameters {
-			p.currentItem.parameters[i] = strings.TrimSpace(parameter)
-		}
 		var err error
-		out, err = p.functions.Call(p.currentItem.name, p.currentItem.parameters...)
+		out, err = p.functions.Call(p.currentItem.name, p.currentItem.GetParameters()...)
 		if err != nil {
 			return err
 		}
@@ -311,11 +285,10 @@ func (p *Parser) processCurrentItem() error {
 		return fmt.Errorf("unsupported item type [%d]", p.currentItem.t) // this should never happen
 	}
 
-	for _, modifier := range p.currentItem.modifiers {
+	for _, modifier := range p.currentItem.GetModifiers() {
 		if err := p.incrementFunctionCount(); err != nil {
 			return err
 		}
-		modifier = strings.TrimSpace(modifier)
 		var err error
 		out, err = p.mutations.Call(modifier, out)
 		if err != nil {
@@ -328,6 +301,7 @@ func (p *Parser) processCurrentItem() error {
 		p.currentItem = p.currentItem.parent
 		if p.currentItem.IsFunction() {
 			p.currentItem.parameters[p.currentItem.currParam] += out
+			p.currentItem.paramSpacesToTrim[p.currentItem.currParam] = 0
 		} else {
 			p.currentItem.name += out
 		}

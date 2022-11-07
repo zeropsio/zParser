@@ -19,8 +19,6 @@ import (
 //  - one password hash should take about 300ms with bcrypt
 //  - argon2id hashing may be faster than bcrypt (no need for 300ms), but must use more memory
 
-var titleCaser = cases.Title(language.English, cases.NoLower)
-
 type modifyFunc func(in string) (string, error)
 
 type Modifiers struct {
@@ -28,6 +26,7 @@ type Modifiers struct {
 }
 
 func NewModifiers() *Modifiers {
+	titleCaser := cases.Title(language.English, cases.NoLower)
 	return &Modifiers{
 		modifiers: map[string]modifyFunc{
 			"sha256": func(in string) (string, error) {

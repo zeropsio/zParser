@@ -1,0 +1,51 @@
+concurrency: 16
+
+run:
+  deadline: 1m
+  issues-exit-code: 1
+  tests: true
+
+output:
+  format: colored-line-number
+
+linters-settings:
+  exhaustive:
+    default-signifies-exhaustive: true
+
+issues:
+  max-same-issues: 0
+
+linters:
+  enable:
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gocritic
+#    - gocognit
+    - prealloc
+    - nakedret
+    - gosec
+    - gofmt
+    - unconvert
+    - exportloopref
+    - exhaustive
+    - asciicheck
+#    - nolintlint
+#    - cyclop
+    - depguard
+    - dogsled
+    - dupl
+    - durationcheck
+    - errorlint
+    - gochecknoglobals
+    - nestif
+#    - sqlclosecheck
+#    - rowserrcheck
+    - errcheck
+    - bodyclose
+    - gosimple
+    - goconst
+
+  disable-all: true
+  fast: false

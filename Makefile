@@ -11,6 +11,18 @@ buildMac:
 	env GOOS=darwin GOARCH=amd64 go build -o ./bin/yamlParser-darwin-amd64 ./cmd/
 	env GOOS=darwin GOARCH=arm64 go build -o ./bin/yamlParser-darwin-arm64 ./cmd/
 
+installLint:
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
+
+fmt:
+	gofmt -s -w ./src/. ./cmd/.
+
+lint:
+	golangci-lint run ./src/... ./cmd/... --verbose
+
+lintFix:
+	golangci-lint run ./src/... ./cmd/... --verbose --fix
+
 test:
 	go test ./src/...
 

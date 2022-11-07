@@ -1,5 +1,13 @@
 stages:
+  - lint
   - tests
+
+lint:
+  tags:
+    - golang182
+  stage: lint
+  script:
+    - golangci-lint run ./src/... ./cmd/... --verbose
 
 unit:
   tags:

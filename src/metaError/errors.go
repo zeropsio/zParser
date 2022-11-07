@@ -32,7 +32,7 @@ func (e MetaError) GetMetaAsString() string {
 	}
 
 	sortedKeys := make([]string, 0, len(e.Meta))
-	for key, _ := range e.Meta {
+	for key := range e.Meta {
 		sortedKeys = append(sortedKeys, key)
 	}
 	sort.Strings(sortedKeys)

@@ -2,7 +2,7 @@ package functions
 
 import (
 	"crypto/ed25519"
-	"crypto/rand"
+	cryptoRand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/hex"
@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	rand2 "math/rand"
+	mathRand "math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -80,7 +80,7 @@ func NewFunctions() *Functions {
 			return "", err
 		}
 
-		publicKey, privateKey, _ := ed25519.GenerateKey(rand.Reader)
+		publicKey, privateKey, _ := ed25519.GenerateKey(cryptoRand.Reader)
 
 		privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
 		if err != nil {
@@ -119,7 +119,7 @@ func NewFunctions() *Functions {
 			return "", err
 		}
 
-		privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+		privateKey, err := rsa.GenerateKey(cryptoRand.Reader, 4096)
 		if err != nil {
 			return "", err
 		}
@@ -186,7 +186,7 @@ func generateRandomInt(param ...string) (string, error) {
 		return "", fmt.Errorf("max [%d] must be bigger than min [%d]", max, min)
 	}
 
-	n, err := rand.Int(rand.Reader, big.NewInt(max-min+1))
+	n, err := cryptoRand.Int(cryptoRand.Reader, big.NewInt(max-min+1))
 	if err != nil {
 		return "", err
 	}
@@ -207,7 +207,7 @@ func generateRandomString(param ...string) (string, error) {
 	}
 
 	result := make([]byte, int(math.Ceil(float64(length)/2)))
-	if _, err := rand.Read(result); err != nil {
+	if _, err := cryptoRand.Read(result); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(result)[:length], nil
@@ -218,8 +218,8 @@ func pickRandom(param ...string) (string, error) {
 	if len(param) == 0 {
 		return "", fmt.Errorf("invalid parameter count, at least 1 expected %d provided", len(param))
 	}
-	rand2.Seed(time.Now().UnixNano())
-	return param[rand2.Intn(len(param))], nil
+	mathRand.Seed(time.Now().UnixNano())
+	return param[mathRand.Intn(len(param))], nil
 }
 
 // returns date time using formatted by format inside first parameter which supports gostradamus.FormatToken values

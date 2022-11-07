@@ -4,6 +4,38 @@
 
 YAML parser with support for functions and string modifiers.
 
+### Spaces
+In static strings, all leading/trailing spaces between `<` and first occurrence of `|` or `>` (whichever occurs first) 
+are printed out/used in modifier (e.g. sha hash), contrary to functions, which have all trailing spaces (in parameters or modifiers) trimmed.
+
+<details>
+<summary>Example</summary>
+Static string:
+
+| input                                           | output                 | comment                                          |
+|-------------------------------------------------|------------------------|--------------------------------------------------|
+| <code>This is < my string &#124; upper>.</code> | `This is  MY STRING .` | notice two spaces before `MY` and one before `.` |
+| <code>This is <my string &#124; upper>.</code>  | `This is MY STRING .`  | notice space before `.`                          |
+| <code>This is< my string &#124; upper>.</code>  | `This is MY STRING .`  | notice space before `.`                          |
+| <code>This is< my string&#124; upper>.</code>   | `This is MY STRING.`   | no extra spaces                                  |
+| <code>This is <my string&#124; upper>.</code>   | `This is MY STRING.`   | no extra spaces (preferred syntax)               |
+
+Function calls:
+
+| input                                                                            | output                      |
+|----------------------------------------------------------------------------------|-----------------------------|
+| <code>This is my <@pickRandom(first, second, third) &#124; upper> string.</code> | `This is my SECOND string.` |
+| <code>This is my <@pickRandom(first,second,third) &#124; upper> string.</code>   | `This is my SECOND string.` |
+| <code>This is my <@pickRandom(first,second,third)&#124; upper> string.</code>    | `This is my SECOND string.` |
+
+Function calls must begin with `<@` (no space between `<` and `@`), following syntax won't work
+
+| input                                                           | output                                 |
+|-----------------------------------------------------------------|----------------------------------------|
+| <code>This is < @generateRandomString(10) &#124; upper>.</code> | `This is  @GENERATERANDOMSTRING(10) .` |
+| <code>This is < @generateRandomString(10)&#124; upper>.</code>  | `This is @GENERATERANDOMSTRING(10).`   |
+</details>
+
 ### Modifiers
 
 Modifiers work on function calls and on static strings.
@@ -14,7 +46,7 @@ Input
 
 ```yaml
   RAND_UPPER_STRING: "<@generateRandomString(50) | upper>"
-  STATIC_UPPER_STRING: "<Static string that will be turned into upper case | upper>"
+  STATIC_UPPER_STRING: "<Static string that will be turned into upper case| upper>"
 ```
 
 Output
@@ -36,9 +68,9 @@ Input
 
 ```yaml
   NESTED_FUNCTIONS: "<@generateRandomString(<@generateRandomInt(10, 50)>)>"
-  NESTED_STRINGS: "<My normal < And My NeStED | upper > strings>"
-  NESTED_STRING_MODIFIERS: "<My normal < And My NeStED | upper > strings | sha256>"
-  NESTED_STRING_IN_FUNCTION: "<@namedString(name, normal string <THAT IS ALL LOWER CASE | lower> even though middle part was not)>"
+  NESTED_STRINGS: "<My normal <And My NeStED| upper> strings>"
+  NESTED_STRING_MODIFIERS: "<My normal <And My NeStED| upper> strings| sha256>"
+  NESTED_STRING_IN_FUNCTION: "<@namedString(name, normal string <THAT IS ALL LOWER CASE| lower> even though middle part was not)>"
   YES_THIS_IS_EXCESSIVE: "<@namedString(randomLengthString, <@generateRandomString(<@generateRandomInt(<@generateRandomInt(10, 50)>, <@generateRandomInt(51, 100)>)>)>) | upper>"
 ```
 
@@ -71,7 +103,7 @@ Input
 ```yaml
   ESCAPED_NESTED_FUNCTIONS: "\<@generateRandomString(\<@generateRandomInt(10, 50)\>)\>"
   ESCAPE_TEST: "\< \<\\\\ \\\\\\\\ \\\\\< <\\\\> \\\\\> \\\\\\\\ \\\\\> \>"
-  ESCAPE_TEST_WITH_ITEM: "\\\\< sTriNG \\\\ witH, mOdiFiers | title >\\\\"
+  ESCAPE_TEST_WITH_ITEM: "\\\\<sTriNG \\\\ witH, mOdiFiers| title>\\\\"
 ```
 
 Output
@@ -647,10 +679,10 @@ Returns first parameter if Mercury IS in retrograde or second if it is not.
 | <code><@getNamedString(myPassword) &#124; sha512></code>   | 89c05547de0aa4926512a958f95ab8bf4096ceec63ad5aad4266890bfa059e0cc98917c54276ba4cd61f1dde4c8efda948fc967885c9dd50558ed939722ca10c |
 | <code><@getNamedString(myPassword) &#124; bcrypt></code>   | $2a$10$CxKZX0yIxdc7ts6eI5aBu.g.heAsFcePdMDEpnlViTlo3vGc//PXe                                                                     |
 | <code><@getNamedString(myPassword) &#124; argon2id></code> | $argon2id$v=19$m=98304,t=1,p=3$uWBpmoUT3sfckXHyRF9hlg$8bGtNffuHxaRIgN99zCmJeGEYJF5BY2J9TwzqmezP28                                |
-| <code><sTATic StrINg wiTH a mOdifIER &#124; upper></code>  | STATIC STRING WITH A MODIFIER                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER &#124; lower></code>  | static string with a modifier                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER &#124; title></code>  | Static String With A Modifier                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER &#124; noop></code>   | sTATic StrINg wiTH a mOdifIER                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; upper></code>   | STATIC STRING WITH A MODIFIER                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; lower></code>   | static string with a modifier                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; title></code>   | Static String With A Modifier                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; noop></code>    | sTATic StrINg wiTH a mOdifIER                                                                                                    |
 
 ### Bcrypt configuration
 

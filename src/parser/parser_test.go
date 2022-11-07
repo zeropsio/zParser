@@ -75,7 +75,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "escaping simple",
-			fields: getFields(1024, 1, `\< \\ \\\\ \\< sTrInG | lower >\\ \\\\ \\ \>`),
+			fields: getFields(1024, 1, `\< \\ \\\\ \\<sTrInG| lower >\\ \\\\ \\ \>`),
 			want:   wantStaticString(`< \ \\ \string\ \\ \ >`),
 		},
 		{
@@ -118,8 +118,18 @@ func TestImportParser_Parse(t *testing.T) {
 			},
 		},
 		{
+			name:   "nesting with spaces",
+			fields: getFields(1024, 1, `<this is < a nested string | noop> with double spaces>`),
+			want:   wantStaticString(`this is  a nested string  with double spaces`),
+		},
+		{
+			name:   "nesting without spaces",
+			fields: getFields(1024, 1, `<this is <a nested string| noop> with single spaces>`),
+			want:   wantStaticString(`this is a nested string with single spaces`),
+		},
+		{
 			name:   "nesting functions and strings with modifiers",
-			fields: getFields(1024, 3, `<@namedString(name, this is < a nested string | title > with a modifier)>`),
+			fields: getFields(1024, 3, `<@namedString(name, this is <a nested string| title> with a modifier)>`),
 			want:   wantStaticString(`this is A Nested String with a modifier`),
 		},
 		{
@@ -297,37 +307,37 @@ func TestImportParser_Parse(t *testing.T) {
 		// Modifiers
 		{
 			name:   "modifier title",
-			fields: getFields(1024, 1, `<my string in title case | title>`),
+			fields: getFields(1024, 1, `<my string in title case| title>`),
 			want:   wantStaticString(`My String In Title Case`),
 		},
 		{
 			name:   "modifier upper",
-			fields: getFields(1024, 1, `<mY StriNg iN UppER caSe | upper>`),
+			fields: getFields(1024, 1, `<mY StriNg iN UppER caSe| upper>`),
 			want:   wantStaticString(`MY STRING IN UPPER CASE`),
 		},
 		{
 			name:   "modifier lower",
-			fields: getFields(1024, 1, `<My sTRing In lOWer cAsE | lower>`),
+			fields: getFields(1024, 1, `<My sTRing In lOWer cAsE| lower>`),
 			want:   wantStaticString(`my string in lower case`),
 		},
 		{
 			name:   "modifier noop",
-			fields: getFields(1024, 1, `<My sTRing wIthoUt { any } ChangEs !@! | noop>`),
+			fields: getFields(1024, 1, `<My sTRing wIthoUt { any } ChangEs !@!| noop>`),
 			want:   wantStaticString(`My sTRing wIthoUt { any } ChangEs !@!`),
 		},
 		{
 			name:   "modifier sha256",
-			fields: getFields(1024, 2, `<this string should be hashed using sha256 algorithm | sha256>`),
+			fields: getFields(1024, 2, `<this string should be hashed using sha256 algorithm| sha256>`),
 			want:   wantStaticString(`28aa52395ab73ec770e95ebe006d6e560e15effb227f2c3ebf743259ebd62bb8`),
 		},
 		{
 			name:   "modifier sha512",
-			fields: getFields(1024, 2, `<this string should be hashed using sha512 algorithm | sha512>`),
+			fields: getFields(1024, 2, `<this string should be hashed using sha512 algorithm| sha512>`),
 			want:   wantStaticString(`3ff0c00ebf7d9b69efefcb38ccf98ee46927e16e01200dcc8bc9071dbe8089360d779206928447df5a3004e66cbc118b3d7e731dd15bfde7ccbac9530678ec99`),
 		},
 		{
 			name:   "modifier bcrypt",
-			fields: getFields(1024, 2, `<this string should be hashed using bcrypt | bcrypt>`),
+			fields: getFields(1024, 2, `<this string should be hashed using bcrypt| bcrypt>`),
 			want: func(s string) error {
 				if err := bcrypt.CompareHashAndPassword([]byte(s), []byte("this string should be hashed using bcrypt")); err != nil {
 					return fmt.Errorf("received bcrypt hash is not the hash of the given string, got = %v", s)
@@ -337,7 +347,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "modifier argon2id",
-			fields: getFields(1024, 2, `<this string should be hashed using argon2id | argon2id>`),
+			fields: getFields(1024, 2, `<this string should be hashed using argon2id| argon2id>`),
 			want: func(s string) error {
 				if err := util.Argon2IDPasswordVerify(s, "this string should be hashed using argon2id"); err != nil {
 					return fmt.Errorf("received argon2id hash is not the hash of the given string, got = %v", s)
@@ -347,7 +357,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "modifiers title and sha256",
-			fields: getFields(1024, 2, `<my string in title case | title | sha256>`),
+			fields: getFields(1024, 2, `<my string in title case| title | sha256>`),
 			want:   wantStaticString(`bb8973c3a99ec24dff29210d336fbdce5568b853acd3c0ca68f3cc9e6fb86659`),
 		},
 	}
