@@ -2,7 +2,6 @@ package parser
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -16,9 +15,9 @@ import (
 const (
 	escapeChar     = '\\'
 	newlineChar    = '\n'
-	itemStartChar  = '{'
-	itemEndChar    = '}'
-	funcStartChar  = '$' // combined with itemStartChar which must be preceding funcStartChar
+	itemStartChar  = '<'
+	itemEndChar    = '>'
+	funcStartChar  = '@' // combined with itemStartChar which must be preceding funcStartChar
 	modifierChar   = '|'
 	paramStartChar = '('
 	paramEndChar   = ')'
@@ -63,7 +62,6 @@ func (p *Parser) Parse() error {
 	var previousRune rune
 
 	skipInitialize := 0      // if above 0 skips X characters, decrementing variable with every skip
-	skipEnv := false         // if set to true, skips all characters until first unescaped } and sets variable to false
 	indentSection := true    // whether any char other than TAB or SPACE occurred on current line (set to false with first such occurrence)
 	lastCharEscaped := false // whether last character was escaped
 
@@ -94,10 +92,10 @@ func (p *Parser) Parse() error {
 			}
 
 			// beginning of string or function
-			// - string like {{ abcd | upper }} has only inside processed and surrounding { and } are preserved, resulting in { ABCD }
-			// - strings like {} are be skipped
-			// - if another { is found before }, new item is initialized as a child
-			if previousRune == itemStartChar && r != itemEndChar && !skipEnv && skipInitialize == 0 {
+			// - string like << abcd | upper >> has only inside processed and surrounding < and > are preserved, resulting in < ABCD >
+			// - strings like <> are be skipped
+			// - if another < is found before >, new item is initialized as a child
+			if previousRune == itemStartChar && r != itemEndChar && skipInitialize == 0 {
 				p.initializeItem(r)
 				return nil
 			}
@@ -123,39 +121,20 @@ func (p *Parser) Parse() error {
 
 			// if previous rune is \ write current rune directly without any processing
 			if previousRune == escapeChar && !lastCharEscaped {
-				// lastCharEscaped = false
 				if err := p.writeRune(r); err != nil {
 					return err
 				}
-				// do not initialize an item if current { was escaped
+				// do not initialize an item if current < was escaped
 				if r == itemStartChar {
 					skipInitialize++
 				}
 				return nil
 			}
-
-			// ignore env variables with following syntax: ${my_env}
-			if r == itemStartChar && previousRune == funcStartChar {
-				if p.currentItem.IsFunction() {
-					return p.fmtErr(previousRune, r, errors.New("env syntax `${xxx}` is not allowed inside function call"))
-				}
-				skipEnv = true
-			}
-
-			if skipEnv {
-				if err := p.writeRune(r); err != nil {
-					return err
-				}
-				if r == itemEndChar {
-					skipEnv = false
-				}
-				return nil
-			}
 			// ESCAPING - End
 
-			// eat { instead of writing it to output
+			// eat < instead of writing it to output
 			if r == itemStartChar {
-				return nil // eat {
+				return nil // eat <
 			}
 
 			// end of currently processed item
@@ -226,17 +205,18 @@ func (p *Parser) Parse() error {
 
 func (p *Parser) fmtErr(prev, curr rune, err error) error {
 	meta := map[string][]string{
-		"line":             {strconv.Itoa(p.currentLine)},
-		"column":           {strconv.Itoa(p.currentChar)},
-		"near":             {fmt.Sprintf("%c%c", prev, curr)},
-		"functionCalls":    {strconv.Itoa(p.functionCount)},
-		"maxFunctionCalls": {strconv.Itoa(p.maxFunctionCount)},
+		"positionLine":       {strconv.Itoa(p.currentLine)},
+		"positionColumn":     {strconv.Itoa(p.currentChar)},
+		"positionNear":       {fmt.Sprintf("%c%c", prev, curr)},
+		"functionCalls":      {strconv.Itoa(p.functionCount)},
+		"functionCallsLimit": {strconv.Itoa(p.maxFunctionCount)},
 	}
 
 	if p.currentItem != nil {
-		meta["processing"] = []string{p.currentItem.name}
-		for i, parameter := range p.currentItem.parameters {
-			meta["param"+strconv.Itoa(i+1)] = []string{parameter}
+		meta["item"] = []string{p.currentItem.name}
+		meta["itemType"] = []string{p.currentItem.t.String()}
+		if len(p.currentItem.parameters) != 0 {
+			meta["itemParams"] = p.currentItem.parameters
 		}
 	}
 
@@ -279,9 +259,9 @@ func (p *Parser) writeRune(r rune) error {
 // initializes a new item
 // if currentItem already exists, it's set as a parent of new item
 func (p *Parser) initializeItem(r rune) {
-	// if rune is set to an escape char, do not pass it to constructor
-	// we know it will be used to escape the following character, and do not want it to be in the item's name
-	if r == escapeChar {
+	// if rune is set to an escape char or item start char, do not pass it to constructor
+	// we know it will be used to escape the following character or initialize a new item, and do not want it to be in the item's name
+	if r == escapeChar || r == itemStartChar {
 		r = 0
 	}
 	item := newParserItem(r, p.currentItem, p.indentChar, p.indentCount)

@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	rand2 "math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bykof/gostradamus"
 	"golang.org/x/crypto/ssh"
@@ -34,6 +36,7 @@ func NewFunctions() *Functions {
 		functions: map[string]function{
 			"generateRandomString": generateRandomString,
 			"generateRandomInt":    generateRandomInt,
+			"pickRandom":           pickRandom,
 			"mercuryInRetrograde":  mercuryInRetrograde,
 			"getDatetime":          getDatetime,
 		},
@@ -208,6 +211,15 @@ func generateRandomString(param ...string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(result)[:length], nil
+}
+
+// selects one random value from all provided parameters
+func pickRandom(param ...string) (string, error) {
+	if len(param) == 0 {
+		return "", fmt.Errorf("invalid parameter count, at least 1 expected %d provided", len(param))
+	}
+	rand2.Seed(time.Now().UnixNano())
+	return param[rand2.Intn(len(param))], nil
 }
 
 // returns date time using formatted by format inside first parameter which supports gostradamus.FormatToken values

@@ -64,7 +64,7 @@ func TestImportParser_Parse(t *testing.T) {
 		// Generic
 		{
 			name:        "max function count",
-			fields:      getFields(1024, 1, `{$generateRandomString(50) | sha256 | sha256 | sha256}`),
+			fields:      getFields(1024, 1, `<@generateRandomString(50) | sha256 | sha256 | sha256>`),
 			wantMetaErr: true,
 		},
 		// Escaping
@@ -75,23 +75,23 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "escaping simple",
-			fields: getFields(1024, 1, `\{ \\ \\\\ \\{ sTrInG | lower }\\ \\\\ \\ \}`),
-			want:   wantStaticString(`{ \ \\ \string\ \\ \ }`),
+			fields: getFields(1024, 1, `\< \\ \\\\ \\< sTrInG | lower >\\ \\\\ \\ \>`),
+			want:   wantStaticString(`< \ \\ \string\ \\ \ >`),
 		},
 		{
 			name:   "escaping in function param",
-			fields: getFields(1024, 1, `{$namedString(commaString, this is a named string\, that contains some commas\, and closing braces \) and backslashes \\ what do you think?)}`),
+			fields: getFields(1024, 1, `<@namedString(commaString, this is a named string\, that contains some commas\, and closing braces \) and backslashes \\ what do you think?)>`),
 			want:   wantStaticString(`this is a named string, that contains some commas, and closing braces ) and backslashes \ what do you think?`),
 		},
 		{
 			name:   "escaping with supported characters",
-			fields: getFields(1024, 0, `0123456789 abcdefghijklmnopqrstuvwxyz ľščťžýáíéúäôň §~!@#$%^&*()_+\}\{|"':?><°ˇ-=[];'\\,./`),
+			fields: getFields(1024, 0, `0123456789 abcdefghijklmnopqrstuvwxyz ľščťžýáíéúäôň §~!@#$%^&*()_+}{|"':?\>\<°ˇ-=[];'\\,./`),
 			want:   wantStaticString(`0123456789 abcdefghijklmnopqrstuvwxyz ľščťžýáíéúäôň §~!@#$%^&*()_+}{|"':?><°ˇ-=[];'\,./`),
 		},
 		// Nesting
 		{
 			name:   "nesting functions",
-			fields: getFields(1024, 3, `{$generateRandomInt({$generateRandomInt(-9, 0)}, {$generateRandomInt(1, 9)})}`),
+			fields: getFields(1024, 3, `<@generateRandomInt(<@generateRandomInt(-9, 0)>, <@generateRandomInt(1, 9)>)>`),
 			want: func(s string) error {
 				num, err := strconv.ParseInt(s, 10, 64)
 				if err != nil {
@@ -105,7 +105,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "nesting functions with modifier",
-			fields: getFields(1024, 3, `{$generateRandomString({$generateRandomInt(10, 50)}) | upper}`),
+			fields: getFields(1024, 3, `<@generateRandomString(<@generateRandomInt(10, 50)>) | upper>`),
 			want: func(s string) error {
 				l := len(s)
 				if l < 10 || l > 50 {
@@ -119,33 +119,28 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "nesting functions and strings with modifiers",
-			fields: getFields(1024, 3, `{$namedString(name, this is { a nested string | title } with a modifier)}`),
+			fields: getFields(1024, 3, `<@namedString(name, this is < a nested string | title > with a modifier)>`),
 			want:   wantStaticString(`this is A Nested String with a modifier`),
 		},
 		{
-			name:        "not allowing env inside function param",
-			fields:      getFields(1024, 3, `{$namedString(name, hello ${user_name} how are you)}`),
-			wantMetaErr: true,
-		},
-		{
-			name:   "allowing env inside function param with escape", // whether this should be allowed is debatable, but it would be a pain to specifically disable it
-			fields: getFields(1024, 3, `{$namedString(name, hello $\{user_name} how are you)}`),
+			name:   "allowing env inside function param",
+			fields: getFields(1024, 1, `<@namedString(name, hello ${user_name} how are you)>`),
 			want:   wantStaticString(`hello ${user_name} how are you`),
 		},
 		{
-			name:   "allowing env inside function param with nesting", // whether this should be allowed is debatable, but it would be a pain to specifically disable it
-			fields: getFields(1024, 3, `{$namedString(name, hello { ${user_name} } how are you)}`),
-			want:   wantStaticString(`hello ${user_name} how are you`),
+			name:   "env with random suffix",
+			fields: getFields(1024, 1, `${user_name<@generateRandomInt(10, 99)>}`),
+			want:   wantStaticLen(14),
 		},
 		// Functions
 		{
 			name:   "generate random string",
-			fields: getFields(1024, 1, `{$generateRandomString(50)}`),
+			fields: getFields(1024, 1, `<@generateRandomString(50)>`),
 			want:   wantStaticLen(50),
 		},
 		{
 			name:   "generate random int",
-			fields: getFields(1024, 1, `{$generateRandomInt(10, 99)}`),
+			fields: getFields(1024, 1, `<@generateRandomInt(10, 99)>`),
 			want: func(s string) error {
 				num, err := strconv.ParseInt(s, 10, 64)
 				if err != nil {
@@ -159,7 +154,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "date time",
-			fields: getFields(1024, 1, `{$getDatetime(DD.MM.YYYY hh:mm:ss)}`),
+			fields: getFields(1024, 1, `<@getDatetime(DD.MM.YYYY hh:mm:ss)>`),
 			want: func(s string) error {
 				const layout = "01.02.2006 15:04:05"
 				t, err := time.Parse(layout, s)
@@ -174,7 +169,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "mercury in retrograde",
-			fields: getFields(1024, 1, `{$mercuryInRetrograde(Mercury is in retrograde, Mercury is not in retrograde)}`),
+			fields: getFields(1024, 1, `<@mercuryInRetrograde(Mercury is in retrograde, Mercury is not in retrograde)>`),
 			want: func(s string) error {
 				yes, _ := util.MercuryInRetrograde() // ignore err, failing tests in 2031 should prompt update of the map ;-)
 				if yes && s == "Mercury is not in retrograde" {
@@ -188,28 +183,28 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "generate random named string",
-			fields: getFields(1024, 1, `{$generateRandomNamedString(name, 50)}`),
+			fields: getFields(1024, 1, `<@generateRandomNamedString(name, 50)>`),
 			want:   wantStaticLen(50),
 		},
 		{
 			name:   "get random named string",
-			fields: getFields(1024, 2, `{$generateRandomNamedString(name, 50)}|{$getNamedString(name)}`),
+			fields: getFields(1024, 2, `<@generateRandomNamedString(name, 50)>|<@getNamedString(name)>`),
 			want:   wantStaticLen(101),
 		},
 		{
 			name:   "custom named string",
-			fields: getFields(1024, 1, `{$namedString(name, my completely custom string)}`),
+			fields: getFields(1024, 1, `<@namedString(name, my completely custom string)>`),
 			want:   wantStaticString(`my completely custom string`),
 		},
 		{
 			name:   "get custom named string",
-			fields: getFields(1024, 2, `{$namedString(name, my completely custom string)}|{$getNamedString(name)}`),
+			fields: getFields(1024, 2, `<@namedString(name, my completely custom string)>|<@getNamedString(name)>`),
 			want:   wantStaticString(`my completely custom string|my completely custom string`),
 		},
 		{
 			// tests complete generation of public, public ssh, private and private ssh keys
 			name:   "get ED25519 private key",
-			fields: getFields(1024, 4, "{$generateED25519Key(name)}|{$getNamedString(namePrivate)}|{$getNamedString(namePrivateSsh)}|{$getNamedString(namePublicSsh)}"),
+			fields: getFields(1024, 4, "<@generateED25519Key(name)>|<@getNamedString(namePrivate)>|<@getNamedString(namePrivateSsh)>|<@getNamedString(namePublicSsh)>"),
 			want: func(s string) error {
 				parts := strings.Split(s, "|")
 				if len(parts) != 4 {
@@ -254,7 +249,7 @@ func TestImportParser_Parse(t *testing.T) {
 		{
 			// tests complete generation of public, public ssh and private keys
 			name:   "generate RSA4096 key",
-			fields: getFields(1024, 4, "{$generateRSA4096Key(name)}|{$getNamedString(namePrivate)}|{$getNamedString(namePublicSsh)}"),
+			fields: getFields(1024, 4, "<@generateRSA4096Key(name)>|<@getNamedString(namePrivate)>|<@getNamedString(namePublicSsh)>"),
 			want: func(s string) error {
 				parts := strings.Split(s, "|")
 				if len(parts) != 3 {
@@ -302,37 +297,37 @@ func TestImportParser_Parse(t *testing.T) {
 		// Modifiers
 		{
 			name:   "modifier title",
-			fields: getFields(1024, 1, `{my string in title case | title}`),
+			fields: getFields(1024, 1, `<my string in title case | title>`),
 			want:   wantStaticString(`My String In Title Case`),
 		},
 		{
 			name:   "modifier upper",
-			fields: getFields(1024, 1, `{mY StriNg iN UppER caSe | upper}`),
+			fields: getFields(1024, 1, `<mY StriNg iN UppER caSe | upper>`),
 			want:   wantStaticString(`MY STRING IN UPPER CASE`),
 		},
 		{
 			name:   "modifier lower",
-			fields: getFields(1024, 1, `{My sTRing In lOWer cAsE | lower}`),
+			fields: getFields(1024, 1, `<My sTRing In lOWer cAsE | lower>`),
 			want:   wantStaticString(`my string in lower case`),
 		},
 		{
 			name:   "modifier noop",
-			fields: getFields(1024, 1, `{My sTRing wIthoUt < any > ChangEs !@! | noop}`),
-			want:   wantStaticString(`My sTRing wIthoUt < any > ChangEs !@!`),
+			fields: getFields(1024, 1, `<My sTRing wIthoUt { any } ChangEs !@! | noop>`),
+			want:   wantStaticString(`My sTRing wIthoUt { any } ChangEs !@!`),
 		},
 		{
 			name:   "modifier sha256",
-			fields: getFields(1024, 2, `{this string should be hashed using sha256 algorithm | sha256}`),
+			fields: getFields(1024, 2, `<this string should be hashed using sha256 algorithm | sha256>`),
 			want:   wantStaticString(`28aa52395ab73ec770e95ebe006d6e560e15effb227f2c3ebf743259ebd62bb8`),
 		},
 		{
 			name:   "modifier sha512",
-			fields: getFields(1024, 2, `{this string should be hashed using sha512 algorithm | sha512}`),
+			fields: getFields(1024, 2, `<this string should be hashed using sha512 algorithm | sha512>`),
 			want:   wantStaticString(`3ff0c00ebf7d9b69efefcb38ccf98ee46927e16e01200dcc8bc9071dbe8089360d779206928447df5a3004e66cbc118b3d7e731dd15bfde7ccbac9530678ec99`),
 		},
 		{
 			name:   "modifier bcrypt",
-			fields: getFields(1024, 2, `{this string should be hashed using bcrypt | bcrypt}`),
+			fields: getFields(1024, 2, `<this string should be hashed using bcrypt | bcrypt>`),
 			want: func(s string) error {
 				if err := bcrypt.CompareHashAndPassword([]byte(s), []byte("this string should be hashed using bcrypt")); err != nil {
 					return fmt.Errorf("received bcrypt hash is not the hash of the given string, got = %v", s)
@@ -342,7 +337,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "modifier argon2id",
-			fields: getFields(1024, 2, `{this string should be hashed using argon2id | argon2id}`),
+			fields: getFields(1024, 2, `<this string should be hashed using argon2id | argon2id>`),
 			want: func(s string) error {
 				if err := util.Argon2IDPasswordVerify(s, "this string should be hashed using argon2id"); err != nil {
 					return fmt.Errorf("received argon2id hash is not the hash of the given string, got = %v", s)
@@ -352,7 +347,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "modifiers title and sha256",
-			fields: getFields(1024, 2, `{my string in title case | title | sha256}`),
+			fields: getFields(1024, 2, `<my string in title case | title | sha256>`),
 			want:   wantStaticString(`bb8973c3a99ec24dff29210d336fbdce5568b853acd3c0ca68f3cc9e6fb86659`),
 		},
 	}
@@ -375,8 +370,8 @@ func TestImportParser_Parse(t *testing.T) {
 				return
 			}
 
-			out := tt.fields.out.String()
 			if tt.want != nil {
+				out := tt.fields.out.String()
 				if err := tt.want(out); err != nil {
 					t.Errorf("Parser() %s", err)
 				}

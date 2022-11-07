@@ -39,7 +39,8 @@ func (e MetaError) GetMetaAsString() string {
 
 	out := ""
 	for _, key := range sortedKeys {
-		out += fmt.Sprintf("%s: [%s]\n", key, strings.Join(e.Meta[key], ", "))
+		// out += fmt.Sprintf("%s: [%s]\n", key, strings.Join(e.Meta[key], ", "))
+		out += fmt.Sprintf("%s: %s\n", key, strings.Join(e.Meta[key], "\n"+strings.Repeat(" ", len(key))+"  "))
 	}
 	return out
 }

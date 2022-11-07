@@ -17,6 +17,16 @@ const (
 	itemSectionModifiers
 )
 
+func (t itemType) String() string {
+	switch t {
+	case itemTypeFunction:
+		return "function"
+	case itemTypeString:
+		return "string"
+	}
+	return "unknown"
+}
+
 type parserItem struct {
 	t itemType
 
@@ -55,9 +65,9 @@ func newParserItem(r rune, parent *parserItem, indentChar rune, indentCount int)
 	return item
 }
 
-// CanBeEnded returns whether item is in a section, where } should be considered as an end of the item
+// CanBeEnded returns whether item is in a section, where > should be considered as an end of the item
 // This allows us the following syntax
-// - {$namedString(someName, this } shouldn't be considered as an end because we are still inside parameters)}
+// - <@namedString(someName, this > shouldn't be considered as an end because we are still inside parameters)>
 func (i *parserItem) CanBeEnded() bool {
 	return (i.IsFunction() && i.currSection == itemSectionModifiers) || i.IsString()
 }
