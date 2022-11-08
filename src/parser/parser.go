@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -59,7 +60,7 @@ func NewParser(in io.Reader, out io.Writer, maxFuncCount int) *Parser {
 	return p
 }
 
-func (p *Parser) Parse() error {
+func (p *Parser) Parse(ctx context.Context) error {
 	var previousRune rune
 
 	skipInitialize := 0      // if above 0 skips X characters, decrementing variable with every skip
@@ -67,6 +68,12 @@ func (p *Parser) Parse() error {
 	lastCharEscaped := false // whether last character was escaped
 
 	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		err := func() error {
 			r, _, err := p.in.ReadRune()
 			if err != nil {
@@ -181,6 +188,10 @@ func (p *Parser) Parse() error {
 	}
 
 	return p.out.Flush()
+}
+
+func (p *Parser) GetFunctionCalls() int {
+	return p.functionCount
 }
 
 func (p *Parser) fmtErr(prev, curr rune, err error) error {

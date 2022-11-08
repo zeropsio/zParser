@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"context"
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
@@ -54,14 +55,22 @@ func TestImportParser_Parse(t *testing.T) {
 		}
 	}
 
+	bgCtx := context.Background()
 	tests := []struct {
 		name        string
 		fields      fields
 		wantErr     bool // whether we want an error or not (if wantMetaErr is set to true, this is considered to be true as well)
 		wantMetaErr bool // whether we want the received error to be a validation error (if set to true, returned error MUST be a meta error)
 		want        func(string) error
+		ctxTimeout  time.Duration
 	}{
 		// Generic
+		{
+			name:       "context cancel",
+			fields:     getFields(1024, 200, `<@generateRandomString(50)|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt>`),
+			wantErr:    true,
+			ctxTimeout: time.Millisecond * 500,
+		},
 		{
 			name:        "max function count",
 			fields:      getFields(1024, 1, `<@generateRandomString(50) | sha256 | sha256 | sha256>`),
@@ -363,8 +372,15 @@ func TestImportParser_Parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := bgCtx
+			if tt.ctxTimeout.Nanoseconds() > 0 {
+				var ctxCancel context.CancelFunc
+				ctx, ctxCancel = context.WithTimeout(ctx, tt.ctxTimeout)
+				defer ctxCancel()
+			}
+
 			p := NewParser(tt.fields.in, tt.fields.out, tt.fields.maxFunctionCount)
-			err := p.Parse()
+			err := p.Parse(ctx)
 
 			if err == nil && (tt.wantErr || tt.wantMetaErr) {
 				t.Errorf("Parse() error = %v, wantErr %v, wantMetaErr %v", err, tt.wantErr, tt.wantMetaErr)

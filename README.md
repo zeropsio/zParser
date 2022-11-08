@@ -139,6 +139,7 @@ go get git.vsh-labs.cz/zerops/yaml-parser
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -152,7 +153,7 @@ func main() {
 	}
 
 	p := parser.NewParser(yml, os.Stdout, 200)
-	if err := p.Parse(); err != nil {
+	if err := p.Parse(context.TODO()); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -166,7 +167,6 @@ Standard `metaData` fields (always present):
 
 | keyName            | desc                                                         |
 |--------------------|--------------------------------------------------------------|
-| error              | error text                                                   |
 | functionCalls      | amount of function calls during parsing                      |
 | functionCallsLimit | max amount of function calls allowed during parsing          |
 | positionColumn     | column which was being parsed when error occurred            |

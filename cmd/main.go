@@ -46,7 +46,7 @@ func main() {
 			}
 
 			p := parser.NewParser(f, out, maxFunctions)
-			return p.Parse()
+			return p.Parse(cmd.Context())
 		},
 	}
 
