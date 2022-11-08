@@ -28,6 +28,11 @@ services:
       ESCAPE_TEST: "\< \<\\\\ \\\\\\\\ \\\\\< <\\\\> \\\\\> \\\\\\\\ \\\\\> \>"
       ESCAPE_TEST_WITH_ITEM: "\\\\<sTriNG \\\\ witH, mOdiFiers| title >\\\\"
 
+      NO_WHITESPACE: "<@namedString(envString, this string has no spaces)>"
+      NO_WHITESPACE_2: "<@namedString(envString,     this string also has no spaces     )>"
+      WHITESPACE: "<@namedString(envString,    < this string has single space >    )>"
+      WHITESPACE_2: "<@namedString(envString, <    this string has many spaces     >)>"
+
       FUNCTION_WITH_ENV_SYNTAX: "<@namedString(envString, this is a named string that contains ${my_env} env syntax)>"
       FUNCTION_WITH_ESCAPING_IN_PARAM: "<@namedString(commaString, this is a named string\, that contains some lovely commas\, and closing braces \) and backslashes \\\\ what do you think?)>"
 

@@ -190,8 +190,16 @@ func (p *Parser) Parse(ctx context.Context) error {
 	return p.out.Flush()
 }
 
+// GetFunctionCalls returns amount of functions called at the time of the call.
+// If no errors are returned from Parse function, it will be equal to the total amount of functions+modifiers in processed file.
 func (p *Parser) GetFunctionCalls() int {
 	return p.functionCount
+}
+
+// GetCurrentLine returns amount of lines parsed at the time of the call.
+// If no errors are returned from Parse function, it will be equal to the line count of processed file.
+func (p *Parser) GetCurrentLine() int {
+	return p.currentLine
 }
 
 func (p *Parser) fmtErr(prev, curr rune, err error) error {
