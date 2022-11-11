@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"git.vsh-labs.cz/zerops/yaml-parser/src/functions"
-	"git.vsh-labs.cz/zerops/yaml-parser/src/metaError"
-	"git.vsh-labs.cz/zerops/yaml-parser/src/modifiers"
+	"git.vsh-labs.cz/zerops/zparser/src/functions"
+	"git.vsh-labs.cz/zerops/zparser/src/metaError"
+	"git.vsh-labs.cz/zerops/zparser/src/modifiers"
 )
 
 const (
@@ -147,18 +147,18 @@ func (p *Parser) Parse(ctx context.Context) error {
 				return nil // eat <
 			}
 
-			// end of currently processed item
-			if r == itemEndChar {
-				if err := p.processCurrentItem(); err != nil {
-					return p.fmtErr(previousRune, r, err)
-				}
-				return nil
-			}
-
 			// no item is being processed, just write to output
 			if p.currentItem == nil {
 				if _, err := p.out.WriteRune(r); err != nil {
 					return err
+				}
+				return nil
+			}
+
+			// end of currently processed item
+			if r == itemEndChar {
+				if err := p.processCurrentItem(); err != nil {
+					return p.fmtErr(previousRune, r, err)
 				}
 				return nil
 			}

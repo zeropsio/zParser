@@ -1,8 +1,5 @@
-<@getVar(nonExistingString)>
-
-
 project:
-  name: yaml parser test
+  name: zPars test
 services:
   - hostname: "<@generateRandomString(<20>)>"
     envVariables:

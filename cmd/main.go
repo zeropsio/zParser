@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"git.vsh-labs.cz/zerops/yaml-parser/src/metaError"
-	"git.vsh-labs.cz/zerops/yaml-parser/src/parser"
+	"git.vsh-labs.cz/zerops/zparser/src/metaError"
+	"git.vsh-labs.cz/zerops/zparser/src/parser"
 
 	"github.com/spf13/cobra"
 )

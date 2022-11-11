@@ -1,4 +1,4 @@
-# zPARS - Zerops Parser
+# zPars - Zerops Parser
 
 File parser with support for functions and string modifiers.
 
@@ -201,7 +201,7 @@ Double escaping example
 ### As a package
 
 ```shell
-go get git.vsh-labs.cz/zerops/yaml-parser
+go get git.vsh-labs.cz/zerops/zparser
 ```
 
 ```go
@@ -212,7 +212,7 @@ import (
 	"log"
 	"os"
 
-	"git.vsh-labs.cz/zerops/yaml-parser/src/parser"
+	"git.vsh-labs.cz/zerops/zparser/src/parser"
 )
 
 func main() {

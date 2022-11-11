@@ -18,7 +18,7 @@ import (
 	"github.com/bykof/gostradamus"
 	"golang.org/x/crypto/ssh"
 
-	"git.vsh-labs.cz/zerops/yaml-parser/src/util"
+	"git.vsh-labs.cz/zerops/zparser/src/util"
 )
 
 const maxRandStringLen = 1024
