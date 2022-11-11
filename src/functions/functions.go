@@ -26,132 +26,27 @@ const maxRandStringLen = 1024
 type function func(param ...string) (string, error)
 
 type Functions struct {
-	namedValues map[string]string
-	functions   map[string]function
+	values    map[string]string
+	functions map[string]function
 }
 
-func NewFunctions() *Functions {
-	y := &Functions{
-		namedValues: make(map[string]string, 50),
-		functions: map[string]function{
-			"generateRandomString": generateRandomString,
-			"generateRandomInt":    generateRandomInt,
-			"pickRandom":           pickRandom,
-			"mercuryInRetrograde":  mercuryInRetrograde,
-			"getDatetime":          getDatetime,
-		},
+func NewFunctions(valueStore map[string]string) *Functions {
+	f := &Functions{
+		values: valueStore,
 	}
-
-	y.functions["generateRandomNamedString"] = func(param ...string) (string, error) {
-		if err := paramCountCheck(2, len(param)); err != nil {
-			return "", err
-		}
-		str, err := generateRandomString(param[1])
-		if err != nil {
-			return "", err
-		}
-
-		y.namedValues[param[0]] = str
-		return str, nil
+	f.functions = map[string]function{
+		"generateRandomInt":       f.generateRandomInt,
+		"generateRandomString":    f.generateRandomString,
+		"generateRandomStringVar": f.generateRandomStringVar,
+		"pickRandom":              f.pickRandom,
+		"mercuryInRetrograde":     f.mercuryInRetrograde,
+		"getDatetime":             f.getDatetime,
+		"setVar":                  f.setVar,
+		"getVar":                  f.getVar,
+		"generateED25519Key":      f.generateED25519Key,
+		"generateRSA4096Key":      f.generateRSA4096Key,
 	}
-
-	y.functions["namedString"] = func(param ...string) (string, error) {
-		if err := paramCountCheck(2, len(param)); err != nil {
-			return "", err
-		}
-
-		y.namedValues[param[0]] = param[1]
-		return param[1], nil
-	}
-
-	y.functions["getNamedString"] = func(param ...string) (string, error) {
-		if err := paramCountCheck(1, len(param)); err != nil {
-			return "", err
-		}
-		val, found := y.namedValues[param[0]]
-		if !found {
-			return "", fmt.Errorf("no stored value for key [%s]", param[0])
-		}
-		return val, nil
-	}
-
-	y.functions["generateED25519Key"] = func(param ...string) (string, error) {
-		if err := paramCountCheck(1, len(param)); err != nil {
-			return "", err
-		}
-
-		publicKey, privateKey, _ := ed25519.GenerateKey(cryptoRand.Reader)
-
-		privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
-		if err != nil {
-			return "", err
-		}
-		publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
-		if err != nil {
-			return "", err
-		}
-
-		privatePem := &pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: privateKeyBytes,
-		}
-		privateOpenSshPem := &pem.Block{
-			Type:  "OPENSSH PRIVATE KEY",
-			Bytes: util.MarshalED25519PrivateKey(privateKey), // <- marshals ed25519 correctly
-		}
-		publicPem := &pem.Block{
-			Type:  "PUBLIC KEY",
-			Bytes: publicKeyBytes,
-		}
-		publicSshKey, _ := ssh.NewPublicKey(publicKey)
-
-		name := param[0]
-		y.namedValues[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
-		y.namedValues[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
-		y.namedValues[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
-		y.namedValues[name+"PrivateSsh"] = strings.TrimSpace(string(pem.EncodeToMemory(privateOpenSshPem)))
-
-		return y.namedValues[name+"Public"], nil
-	}
-
-	y.functions["generateRSA4096Key"] = func(param ...string) (string, error) {
-		if err := paramCountCheck(1, len(param)); err != nil {
-			return "", err
-		}
-
-		privateKey, err := rsa.GenerateKey(cryptoRand.Reader, 4096)
-		if err != nil {
-			return "", err
-		}
-
-		privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
-		if err != nil {
-			return "", err
-		}
-		publicKeyBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-		if err != nil {
-			return "", err
-		}
-
-		privatePem := &pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: privateKeyBytes,
-		}
-		publicPem := &pem.Block{
-			Type:  "PUBLIC KEY",
-			Bytes: publicKeyBytes,
-		}
-		publicSshKey, _ := ssh.NewPublicKey(privateKey.Public())
-
-		name := param[0]
-		y.namedValues[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
-		y.namedValues[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
-		y.namedValues[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
-
-		return y.namedValues[name+"Public"], nil
-	}
-
-	return y
+	return f
 }
 
 func (f Functions) Call(name string, params ...string) (string, error) {
@@ -162,15 +57,8 @@ func (f Functions) Call(name string, params ...string) (string, error) {
 	return fn(params...)
 }
 
-func paramCountCheck(expected, received int) error {
-	if expected != received {
-		return fmt.Errorf("invalid parameter count, %d expected %d provided", expected, received)
-	}
-	return nil
-}
-
 // generates cryptographically secure random int in [min, max]
-func generateRandomInt(param ...string) (string, error) {
+func (f Functions) generateRandomInt(param ...string) (string, error) {
 	if err := paramCountCheck(2, len(param)); err != nil {
 		return "", err
 	}
@@ -194,7 +82,7 @@ func generateRandomInt(param ...string) (string, error) {
 }
 
 // generates cryptographically secure random string of specified length given its <= maxRandStringLen
-func generateRandomString(param ...string) (string, error) {
+func (f Functions) generateRandomString(param ...string) (string, error) {
 	if err := paramCountCheck(1, len(param)); err != nil {
 		return "", err
 	}
@@ -214,7 +102,7 @@ func generateRandomString(param ...string) (string, error) {
 }
 
 // selects one random value from all provided parameters
-func pickRandom(param ...string) (string, error) {
+func (f Functions) pickRandom(param ...string) (string, error) {
 	if len(param) == 0 {
 		return "", fmt.Errorf("invalid parameter count, at least 1 expected %d provided", len(param))
 	}
@@ -223,7 +111,7 @@ func pickRandom(param ...string) (string, error) {
 }
 
 // returns date time using formatted by format inside first parameter which supports gostradamus.FormatToken values
-func getDatetime(param ...string) (string, error) {
+func (f Functions) getDatetime(param ...string) (string, error) {
 	if err := paramCountCheck(1, len(param)); err != nil {
 		return "", err
 	}
@@ -231,7 +119,7 @@ func getDatetime(param ...string) (string, error) {
 }
 
 // returns first parameter if Mercury is in retrograde and second parameter if it is NOT in retrograde
-func mercuryInRetrograde(param ...string) (string, error) {
+func (f Functions) mercuryInRetrograde(param ...string) (string, error) {
 	if err := paramCountCheck(2, len(param)); err != nil {
 		return "", err
 	}
@@ -244,4 +132,122 @@ func mercuryInRetrograde(param ...string) (string, error) {
 		return param[0], nil
 	}
 	return param[1], nil
+}
+
+func (f Functions) generateRandomStringVar(param ...string) (string, error) {
+	if err := paramCountCheck(2, len(param)); err != nil {
+		return "", err
+	}
+	str, err := f.generateRandomString(param[1])
+	if err != nil {
+		return "", err
+	}
+
+	f.values[param[0]] = str
+	return str, nil
+}
+
+func (f Functions) setVar(param ...string) (string, error) {
+	if err := paramCountCheck(2, len(param)); err != nil {
+		return "", err
+	}
+
+	f.values[param[0]] = param[1]
+	return param[1], nil
+}
+
+func (f Functions) getVar(param ...string) (string, error) {
+	if err := paramCountCheck(1, len(param)); err != nil {
+		return "", err
+	}
+	return param[0], nil
+
+	// val, found := f.values[param[0]]
+	// if !found {
+	// 	return "", fmt.Errorf("no stored value for key [%s]", param[0])
+	// }
+	// return val, nil
+}
+
+func (f Functions) generateED25519Key(param ...string) (string, error) {
+	if err := paramCountCheck(1, len(param)); err != nil {
+		return "", err
+	}
+
+	publicKey, privateKey, _ := ed25519.GenerateKey(cryptoRand.Reader)
+
+	privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return "", err
+	}
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return "", err
+	}
+
+	privatePem := &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	}
+	privateOpenSshPem := &pem.Block{
+		Type:  "OPENSSH PRIVATE KEY",
+		Bytes: util.MarshalED25519PrivateKey(privateKey), // <- marshals ed25519 correctly
+	}
+	publicPem := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+	publicSshKey, _ := ssh.NewPublicKey(publicKey)
+
+	name := param[0]
+	f.values[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
+	f.values[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
+	f.values[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
+	f.values[name+"PrivateSsh"] = strings.TrimSpace(string(pem.EncodeToMemory(privateOpenSshPem)))
+
+	return f.values[name+"Public"], nil
+}
+
+func (f Functions) generateRSA4096Key(param ...string) (string, error) {
+	if err := paramCountCheck(1, len(param)); err != nil {
+		return "", err
+	}
+
+	privateKey, err := rsa.GenerateKey(cryptoRand.Reader, 4096)
+	if err != nil {
+		return "", err
+	}
+
+	privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return "", err
+	}
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return "", err
+	}
+
+	privatePem := &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	}
+	publicPem := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+	publicSshKey, _ := ssh.NewPublicKey(privateKey.Public())
+
+	name := param[0]
+	f.values[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
+	f.values[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
+	f.values[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
+
+	return f.values[name+"Public"], nil
+}
+
+func paramCountCheck(expected, received int) error {
+	if expected != received {
+		return fmt.Errorf("invalid parameter count, %d expected %d provided", expected, received)
+	}
+	return nil
 }

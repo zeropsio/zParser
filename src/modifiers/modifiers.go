@@ -15,10 +15,6 @@ import (
 	"golang.org/x/text/language"
 )
 
-// TODO(ms): test and choose better bcrypt and argon parameters
-//  - one password hash should take about 300ms with bcrypt
-//  - argon2id hashing may be faster than bcrypt (no need for 300ms), but must use more memory
-
 type modifyFunc func(in string) (string, error)
 
 type Modifiers struct {
@@ -40,24 +36,26 @@ func NewModifiers() *Modifiers {
 				return hex.EncodeToString(hash.Sum(nil)), nil
 			},
 			"bcrypt": func(in string) (string, error) {
-				hash, err := bcrypt.GenerateFromPassword([]byte(in), 10) // cost 10 to not overload the parser service
+				hash, err := bcrypt.GenerateFromPassword([]byte(in), 11) // cost set to not overload the parser service
 				return string(hash), err
 			},
 			"argon2id": func(in string) (string, error) {
 				// standard sane parameters chosen to not overload the parser service
+				// the main gist (not 100% accurate, but close enough) is complexity = memory * iterations / parallelism
 				const (
-					saltLen     = 16        // bytes
-					memory      = 96 * 1024 // kilobytes - main "knob" to turn for more expensive hashes
-					iterations  = 1
-					parallelism = 3
-					keyLength   = 32
+					memory      = 64 * 1024 // KiB - main "knob" to turn for more expensive hashes
+					iterations  = 2         // if memory cant go higher, iterations should, to compensate
+					parallelism = 2         // parallelism set to 2 to better spread the CPU load, that's why iterations = 2
+
+					saltLen = 16 // bytes
+					keyLen  = 32
 				)
 				salt := make([]byte, saltLen)
 				if _, err := rand.Read(salt); err != nil {
 					return "", err
 				}
 
-				hash := argon2.IDKey([]byte(in), salt, iterations, memory, parallelism, keyLength)
+				hash := argon2.IDKey([]byte(in), salt, iterations, memory, parallelism, keyLen)
 
 				// Base64 encode the salt and hashed password.
 				b64Salt := base64.RawStdEncoding.EncodeToString(salt)

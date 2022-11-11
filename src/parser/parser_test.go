@@ -67,13 +67,13 @@ func TestImportParser_Parse(t *testing.T) {
 		// Generic
 		{
 			name:       "context cancel",
-			fields:     getFields(1024, 200, `<@generateRandomString(50)|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt>`),
+			fields:     getFields(1024, 200, `<@generateRandomString(<50>)|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt>`),
 			wantErr:    true,
 			ctxTimeout: time.Millisecond * 500,
 		},
 		{
 			name:        "max function count",
-			fields:      getFields(1024, 1, `<@generateRandomString(50) | sha256 | sha256 | sha256>`),
+			fields:      getFields(1024, 1, `<@generateRandomString(<50>) | sha256 | sha256 | sha256>`),
 			wantMetaErr: true,
 		},
 		// Escaping
@@ -89,7 +89,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "escaping in function param",
-			fields: getFields(1024, 1, `<@namedString(commaString, this is a named string\, that contains some commas\, and closing braces \) and backslashes \\ what do you think?)>`),
+			fields: getFields(1024, 1, `<@setVar(<commaString>, <this is a named string, that contains some commas, and closing braces ) and backslashes \\ what do you think?>)>`),
 			want:   wantStaticString(`this is a named string, that contains some commas, and closing braces ) and backslashes \ what do you think?`),
 		},
 		{
@@ -100,7 +100,7 @@ func TestImportParser_Parse(t *testing.T) {
 		// Nesting
 		{
 			name:   "nesting functions",
-			fields: getFields(1024, 3, `<@generateRandomInt(<@generateRandomInt(-9, 0)>, <@generateRandomInt(1, 9)>)>`),
+			fields: getFields(1024, 3, `<@generateRandomInt(<@generateRandomInt(<-9>, <0>)>, <@generateRandomInt(<1>, <9>)>)>`),
 			want: func(s string) error {
 				num, err := strconv.ParseInt(s, 10, 64)
 				if err != nil {
@@ -114,7 +114,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "nesting functions with modifier",
-			fields: getFields(1024, 3, `<@generateRandomString(<@generateRandomInt(10, 50)>) | upper>`),
+			fields: getFields(1024, 3, `<@generateRandomString(<@generateRandomInt(<10>, <50>)>) | upper>`),
 			want: func(s string) error {
 				l := len(s)
 				if l < 10 || l > 50 {
@@ -138,28 +138,28 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "nesting functions and strings with modifiers",
-			fields: getFields(1024, 3, `<@namedString(name, this is <a nested string| title> with a modifier)>`),
+			fields: getFields(1024, 3, `<@setVar(<name>, <this is <a nested string| title> with a modifier>)>`),
 			want:   wantStaticString(`this is A Nested String with a modifier`),
 		},
 		{
 			name:   "allowing env inside function param",
-			fields: getFields(1024, 1, `<@namedString(name, hello ${user_name} how are you)>`),
+			fields: getFields(1024, 1, `<@setVar(<name>, <hello ${user_name} how are you>)>`),
 			want:   wantStaticString(`hello ${user_name} how are you`),
 		},
 		{
 			name:   "env with random suffix",
-			fields: getFields(1024, 1, `${user_name<@generateRandomInt(10, 99)>}`),
+			fields: getFields(1024, 1, `${user_name<@generateRandomInt(<10>, <99>)>}`),
 			want:   wantStaticLen(14),
 		},
 		// Functions
 		{
 			name:   "generate random string",
-			fields: getFields(1024, 1, `<@generateRandomString(50)>`),
+			fields: getFields(1024, 1, `<@generateRandomString(<50>)>`),
 			want:   wantStaticLen(50),
 		},
 		{
 			name:   "generate random int",
-			fields: getFields(1024, 1, `<@generateRandomInt(10, 99)>`),
+			fields: getFields(1024, 1, `<@generateRandomInt(<10>, <99>)>`),
 			want: func(s string) error {
 				num, err := strconv.ParseInt(s, 10, 64)
 				if err != nil {
@@ -173,7 +173,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "date time",
-			fields: getFields(1024, 1, `<@getDatetime(DD.MM.YYYY hh:mm:ss)>`),
+			fields: getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY hh:mm:ss>)>`),
 			want: func(s string) error {
 				const layout = "01.02.2006 15:04:05"
 				t, err := time.Parse(layout, s)
@@ -188,42 +188,46 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "mercury in retrograde",
-			fields: getFields(1024, 1, `<@mercuryInRetrograde(Mercury is in retrograde, Mercury is not in retrograde)>`),
+			fields: getFields(1024, 1, `<@mercuryInRetrograde(<Mercury is in retrograde>, <Mercury is not in retrograde>)>`),
 			want: func(s string) error {
-				yes, _ := util.MercuryInRetrograde() // ignore err, failing tests in 2031 should prompt update of the map ;-)
+				yes, err := util.MercuryInRetrograde()
+				if err != nil {
+					// failing tests in 2031 should prompt update of the map ;-)
+					return fmt.Errorf("MercuryInRetrograde returned an error: %w", err)
+				}
 				if yes && s == "Mercury is not in retrograde" {
-					return errors.New("Parse() mercury should be in retrograde, but apparently it isn't")
+					return errors.New("mercury should be in retrograde, but apparently it isn't")
 				}
 				if !yes && s == "Mercury is in retrograde" {
-					return errors.New("Parse() mercury should not be in retrograde, but apparently it is")
+					return errors.New("mercury should not be in retrograde, but apparently it is")
 				}
 				return nil
 			},
 		},
 		{
-			name:   "generate random named string",
-			fields: getFields(1024, 1, `<@generateRandomNamedString(name, 50)>`),
+			name:   "generate random string vat",
+			fields: getFields(1024, 1, `<@generateRandomStringVar(<name>, <50>)>`),
 			want:   wantStaticLen(50),
 		},
 		{
-			name:   "get random named string",
-			fields: getFields(1024, 2, `<@generateRandomNamedString(name, 50)>|<@getNamedString(name)>`),
+			name:   "get random string var",
+			fields: getFields(1024, 2, `<@generateRandomStringVar(<name>, <50>)>|<@getVar(name)>`),
 			want:   wantStaticLen(101),
 		},
 		{
-			name:   "custom named string",
-			fields: getFields(1024, 1, `<@namedString(name, my completely custom string)>`),
+			name:   "custom var",
+			fields: getFields(1024, 1, `<@setVar(<name>, <my completely custom string>)>`),
 			want:   wantStaticString(`my completely custom string`),
 		},
 		{
-			name:   "get custom named string",
-			fields: getFields(1024, 2, `<@namedString(name, my completely custom string)>|<@getNamedString(name)>`),
+			name:   "get custom var",
+			fields: getFields(1024, 2, `<@setVar(<name>, <my completely custom string>)>|<@getVar(name)>`),
 			want:   wantStaticString(`my completely custom string|my completely custom string`),
 		},
 		{
 			// tests complete generation of public, public ssh, private and private ssh keys
 			name:   "get ED25519 private key",
-			fields: getFields(1024, 4, "<@generateED25519Key(name)>|<@getNamedString(namePrivate)>|<@getNamedString(namePrivateSsh)>|<@getNamedString(namePublicSsh)>"),
+			fields: getFields(1024, 4, "<@generateED25519Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPrivateSsh)>|<@getVar(keyPublicSsh)>"),
 			want: func(s string) error {
 				parts := strings.Split(s, "|")
 				if len(parts) != 4 {
@@ -260,7 +264,7 @@ func TestImportParser_Parse(t *testing.T) {
 					return fmt.Errorf("provided privateKey does not match provided publicKey: %v", s)
 				}
 
-				// TODO(ms): verify is public ssh key is valid for the private key and if Open SSH key is valid for private key
+				// TODO(ms): verify if PublicSsh <=> PrivateSsh
 
 				return nil
 			},
@@ -268,7 +272,7 @@ func TestImportParser_Parse(t *testing.T) {
 		{
 			// tests complete generation of public, public ssh and private keys
 			name:   "generate RSA4096 key",
-			fields: getFields(1024, 4, "<@generateRSA4096Key(name)>|<@getNamedString(namePrivate)>|<@getNamedString(namePublicSsh)>"),
+			fields: getFields(1024, 4, "<@generateRSA4096Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPublicSsh)>"),
 			want: func(s string) error {
 				parts := strings.Split(s, "|")
 				if len(parts) != 3 {
@@ -297,7 +301,7 @@ func TestImportParser_Parse(t *testing.T) {
 					return fmt.Errorf("provided privateKey does not match provided publicKey: %v", s)
 				}
 
-				// TODO(ms): verify is public ssh key is valid for the private key
+				// TODO(ms): verify if public ssh key is valid for the private key
 				// pubSshBlock, _, _, _, err := ssh.ParseAuthorizedKey([]byte(parts[2]))
 				// if err != nil {
 				// 	return err

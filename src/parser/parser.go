@@ -42,22 +42,24 @@ type Parser struct {
 
 	functions *functions.Functions
 	mutations *modifiers.Modifiers
+
+	valueStore map[string]string
 }
 
 func NewParser(in io.Reader, out io.Writer, maxFuncCount int) *Parser {
-	p := &Parser{
+	values := make(map[string]string, 200)
+	return &Parser{
 		in:  bufio.NewReader(in),
 		out: bufio.NewWriter(out),
 
 		maxFunctionCount: maxFuncCount,
 
-		functions: functions.NewFunctions(),
+		functions: functions.NewFunctions(values),
 		mutations: modifiers.NewModifiers(),
 
 		currentLine: 1,
+		valueStore:  values,
 	}
-
-	return p
 }
 
 func (p *Parser) Parse(ctx context.Context) error {
@@ -146,7 +148,7 @@ func (p *Parser) Parse(ctx context.Context) error {
 			}
 
 			// end of currently processed item
-			if r == itemEndChar && p.currentItem.CanBeEnded() {
+			if r == itemEndChar {
 				if err := p.processCurrentItem(); err != nil {
 					return p.fmtErr(previousRune, r, err)
 				}
@@ -215,7 +217,7 @@ func (p *Parser) fmtErr(prev, curr rune, err error) error {
 		meta["item"] = []string{p.currentItem.name}
 		meta["itemType"] = []string{p.currentItem.t.String()}
 		if len(p.currentItem.parameters) != 0 {
-			meta["itemParams"] = p.currentItem.parameters
+			meta["itemParams"] = p.currentItem.GetParameters()
 		}
 	}
 
@@ -247,7 +249,7 @@ func (p *Parser) writeRune(r rune) error {
 		return nil
 	}
 	if p.currentItem.IsFunction() {
-		p.currentItem.parameters[p.currentItem.currParam] += string(r)
+		p.currentItem.parameters[p.currentItem.currParam].value += string(r)
 	} else {
 		p.currentItem.name += string(r)
 	}
@@ -263,11 +265,7 @@ func (p *Parser) initializeItem(r rune) {
 	if r == escapeChar || r == itemStartChar {
 		r = 0
 	}
-	item := newParserItem(r, p.currentItem, p.indentChar, p.indentCount)
-	if p.currentItem != nil {
-		item.parent = p.currentItem
-	}
-	p.currentItem = item
+	p.currentItem = newParserItem(r, p.currentItem, p.indentChar, p.indentCount)
 }
 
 // Processes currentItem.
@@ -292,8 +290,13 @@ func (p *Parser) processCurrentItem() error {
 		if err := p.incrementFunctionCount(); err != nil {
 			return err
 		}
-		var err error
-		out, err = p.functions.Call(p.currentItem.name, p.currentItem.GetParameters()...)
+
+		params, err := p.currentItem.GetInterpretedParameters(p.valueStore)
+		if err != nil {
+			return err
+		}
+
+		out, err = p.functions.Call(p.currentItem.name, params...)
 		if err != nil {
 			return err
 		}
@@ -319,8 +322,8 @@ func (p *Parser) processCurrentItem() error {
 	if p.currentItem.parent != nil {
 		p.currentItem = p.currentItem.parent
 		if p.currentItem.IsFunction() {
-			p.currentItem.parameters[p.currentItem.currParam] += out
-			p.currentItem.paramSpacesToTrim[p.currentItem.currParam] = 0
+			p.currentItem.parameters[p.currentItem.currParam].value += out
+			p.currentItem.parameters[p.currentItem.currParam].isVariable = false
 		} else {
 			p.currentItem.name += out
 		}

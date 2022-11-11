@@ -1,7 +1,10 @@
+<@getVar(nonExistingString)>
+
+
 project:
   name: yaml parser test
 services:
-  - hostname: "<@generateRandomString(20)>"
+  - hostname: "<@generateRandomString(<20>)>"
     envVariables:
       NORMAL_ENV: ${MY_COOL_ENV}
       NORMAL_ENV_IN_QUOTES: "${MY_COOL_QUOTED_ENV}"
@@ -20,21 +23,21 @@ services:
          STRING| upper>
         >
 
-      ONE_FUNCTION: "<@generateRandomString(20)>"
-      TWO_FUNCTIONS: "<@generateRandomString(20)><@generateRandomInt(1, 9999)>"
-      NESTED_FUNCTIONS: "<@generateRandomString(<@generateRandomInt(10, 50)>)>"
+      ONE_FUNCTION: "<@generateRandomString(<20>)>"
+      TWO_FUNCTIONS: "<@generateRandomString(<20>)><@generateRandomInt(<1>, <9999>)>"
+      NESTED_FUNCTIONS: "<@generateRandomString(<@generateRandomInt(<10>, <50>)>)>"
 
       ESCAPED_NESTED_FUNCTIONS: "\<@generateRandomString(\<@generateRandomInt(10, 50)\>)\>"
       ESCAPE_TEST: "\< \<\\\\ \\\\\\\\ \\\\\< <\\\\> \\\\\> \\\\\\\\ \\\\\> \>"
       ESCAPE_TEST_WITH_ITEM: "\\\\<sTriNG \\\\ witH, mOdiFiers| title >\\\\"
 
-      NO_WHITESPACE: "<@namedString(envString, this string has no spaces)>"
-      NO_WHITESPACE_2: "<@namedString(envString,     this string also has no spaces     )>"
-      WHITESPACE: "<@namedString(envString,    < this string has single space >    )>"
-      WHITESPACE_2: "<@namedString(envString, <    this string has many spaces     >)>"
+      NO_WHITESPACE: "<@setVar(<envString>, <this string has no spaces>)>"
+      NO_WHITESPACE_2: "<@setVar(<envString>,     <this string also has no spaces>     )>"
+      WHITESPACE: "<@setVar(<envString>,    < this string has single space >    )>"
+      WHITESPACE_2: "<@setVar(<envString>, <    this string has many spaces     >)>"
 
-      FUNCTION_WITH_ENV_SYNTAX: "<@namedString(envString, this is a named string that contains ${my_env} env syntax)>"
-      FUNCTION_WITH_ESCAPING_IN_PARAM: "<@namedString(commaString, this is a named string\, that contains some lovely commas\, and closing braces \) and backslashes \\\\ what do you think?)>"
+      FUNCTION_WITH_ENV_SYNTAX: "<@setVar(<envString>, <this is a named string that contains ${my_env} env syntax>)>"
+      FUNCTION_WITH_ESCAPING_IN_PARAM: "<@setVar(<commaString>, <this is a named string\, that contains some lovely commas\, and closing braces \) and backslashes \\\\ what do you think?>)>"
 
       STRING_ONE_MODIFIER: "<my super cool string| upper>"
       STRING_TWO_MODIFIERS: "<my super cool string| upper | sha512>"
@@ -48,52 +51,53 @@ services:
       WRITE_STRING_COMPLEX: "\<@generateRandomString(20)\>"
       WRITE_STRING_COMPLEX_ONE_MODIFIER: "<\<@generateRandomString(20)\>| upper>"
 
-      FUNCTION_ONE_MODIFIER: "<@generateRandomString(20) | upper>"
-      FUNCTION_TWO_MODIFIERS: "<@generateRandomString(20) | upper | sha512>"
+      FUNCTION_ONE_MODIFIER: "<@generateRandomString(<20>)| upper>"
+      FUNCTION_TWO_MODIFIERS: "<@generateRandomString(<20>)| upper | sha512>"
 
-      NESTED_FUNCTION_ONE_MODIFIER: "<@generateRandomString(<@generateRandomInt(10, 50)>) | upper>"
-      NESTED_FUNCTION_TWO_MODIFIERS: "<@generateRandomString(<@generateRandomInt(10, 50)>) | upper | sha512>"
+      NESTED_FUNCTION_ONE_MODIFIER: "<@generateRandomString(<@generateRandomInt(<10>, <50>)>)| upper>"
+      NESTED_FUNCTION_TWO_MODIFIERS: "<@generateRandomString(<@generateRandomInt(<10>, <50>)>)| upper | sha512>"
 
-      NESTED_FUNCTION_ONE_NESTED_MODIFIER: "<@namedString(myRandomString, <@generateRandomString(20) | upper>)>"
-      NESTED_FUNCTION_ONE_NESTED_ONE_NORMAL_MODIFIER: "<@namedString(myAnotherRandomString, <@generateRandomString(20) | upper>) | sha512>"
+      NESTED_FUNCTION_ONE_NESTED_MODIFIER: "<@setVar(<myRandomString>, <@generateRandomString(<20>)| upper>)>"
+      NESTED_FUNCTION_ONE_NESTED_ONE_NORMAL_MODIFIER: "<@setVar(<myAnotherRandomString>, <@generateRandomString(<20>)| upper>)| sha512>"
 
-      EXISTING_STRING: "<@getNamedString(myRandomString)>"
-      EXISTING_STRING_ONE_MODIFIER: "<@getNamedString(myRandomString) | lower>"
+      EXISTING_STRING: "<@getVar(myRandomString)>"
+      EXISTING_STRING_ONE_MODIFIER: "<@getVar(myRandomString)| lower>"
 
-      QUAD_NESTED_FUNCTIONS: "<@namedString(megaNestedString, <@generateRandomString(<@generateRandomInt(<@generateRandomInt(10, 50)>, <@generateRandomInt(51, 100)>)>)>) | upper>"
+      QUAD_NESTED_FUNCTIONS: "<@setVar(<megaNestedString>, <@generateRandomString(<@generateRandomInt(<@generateRandomInt(<10>, <50>)>, <@generateRandomInt(<51>, <100>)>)>)>)| upper>"
 
-      FUNCTION_WITH_SUPPORTED_CHARS: "<@namedString(questionableString, this is a | totally \< valid string that \> should just work | without any issues \\\\/!@#$%^&*_+{}:|?\>\<) | upper>"
+      FUNCTION_WITH_SUPPORTED_CHARS: "<@setVar(<questionableString>, <this is a \| totally \< valid string that \> should just work \| without any issues \\\\/!@#$%^&*_+{}:\|?\>\<>)| upper>"
 
-      RANDOM_ITEM: <@pickRandom(random1, random2, random3)>
+      RANDOM_ITEM: <@pickRandom(<random1>, <random2>, <random3>)>
 
-      CURRENT_DATE: "<@getDatetime(DD.MM.YYYY)>"
-      CURRENT_DATE_TIME: "<@getDatetime(DD.MM.YYYY HH:mm:ss)>"
+      # TODO: timezone!
+      CURRENT_DATE: "<@getDatetime(<DD.MM.YYYY>)>"
+      CURRENT_DATE_TIME: "<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>"
 
-      PASSWORD_PLAIN: "<@generateRandomNamedString(myPassword, 30)>"
-      PASSWORD_SHA512: "<@getNamedString(myPassword) | sha512>"
-      PASSWORD_BCRYPT: "<@getNamedString(myPassword) | bcrypt>"
-      PASSWORD_ARGON2: "<@getNamedString(myPassword) | argon2id>"
+      PASSWORD_PLAIN: "<@generateRandomStringVar(<myPassword>, <30>)>"
+      PASSWORD_SHA512: "<@getVar(myPassword)| sha512>"
+      PASSWORD_BCRYPT: "<@getVar(myPassword)| bcrypt>"
+      PASSWORD_ARGON2: "<@getVar(myPassword)| argon2id>"
 
       ED25519_KEY_PUB: |
-        <@generateED25519Key(myED25519Key)>
+        <@generateED25519Key(<myED25519Key>)>
 
-      ED25519_KEY_PUB_SSH: "<@getNamedString(myED25519KeyPublicSsh)>"
+      ED25519_KEY_PUB_SSH: "<@getVar(myED25519KeyPublicSsh)>"
 
       ED25519_KEY_PRIVATE: |
-        <@getNamedString(myED25519KeyPrivate)>
+        <@getVar(myED25519KeyPrivate)>
 
       ED25519_KEY_PRIVATE_SSH: |
-        <@getNamedString(myED25519KeyPrivateSsh)>
+        <@getVar(myED25519KeyPrivateSsh)>
 
       RSA_KEY_PUB: |
-        <@generateRSA4096Key(myRSA4096Key)>
+        <@generateRSA4096Key(<myRSA4096Key>)>
 
-      RSA_KEY_PUB_SSH: "<@getNamedString(myRSA4096KeyPublicSsh)>"
+      RSA_KEY_PUB_SSH: "<@getVar(myRSA4096KeyPublicSsh)>"
 
       RSA_KEY_PRIVATE: |
-        <@getNamedString(myRSA4096KeyPrivate)>
+        <@getVar(myRSA4096KeyPrivate)>
 
-      MERCURY_RETROGRADE: "<@mercuryInRetrograde(mercury is in retrograde, mercury is not in retrograde) | title>"
+      MERCURY_RETROGRADE: "<@mercuryInRetrograde(<mercury is in retrograde>, <mercury is not in retrograde>)| title>"
 
       BROKEN_KEY_START: |
         this thing will break

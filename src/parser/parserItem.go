@@ -2,6 +2,7 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -28,13 +29,17 @@ func (t itemType) String() string {
 	return "unknown"
 }
 
+type itemParam struct {
+	value      string
+	isVariable bool
+}
+
 type parserItem struct {
 	t itemType
 
-	name              string // represents function name or string content
-	parameters        []string
-	paramSpacesToTrim []int // how many spaces must be trimmed of the end of parameter with same index in parameters
-	modifiers         []string
+	name       string // represents function name or string content
+	parameters []itemParam
+	modifiers  []string
 
 	currSection  itemSection
 	currParam    int
@@ -58,20 +63,15 @@ func newParserItem(r rune, parent *parserItem, indentChar rune, indentCount int)
 	}
 	if r == funcStartChar {
 		item.t = itemTypeFunction
-		item.parameters = make([]string, 1, 2)
-		item.paramSpacesToTrim = make([]int, 1, 2)
+		item.parameters = []itemParam{{
+			value:      "",
+			isVariable: true,
+		}}
 	} else if r != 0 {
-		// if r == 0 do not add it to the name, or we will create documents with NULL bytes inside od them!
+		// if r == 0 do not add it to the name, otherwise we would create documents with NULL bytes inside!
 		item.name = string(r)
 	}
 	return item
-}
-
-// CanBeEnded returns whether item is in a section, where > should be considered as an end of the item
-// This allows us the following syntax
-// - <@namedString(someName, this > shouldn't be considered as an end because we are still inside parameters)>
-func (i *parserItem) CanBeEnded() bool {
-	return (i.IsFunction() && i.currSection == itemSectionModifiers) || i.IsString()
 }
 
 func (i *parserItem) IsFunction() bool {
@@ -103,8 +103,6 @@ func (i *parserItem) ProcessCurrentFunctionSection(r rune) (bool, error) {
 			return false, errors.New("comma at incorrect place")
 		}
 		i.currParam++
-		i.parameters = append(i.parameters, "")
-		i.paramSpacesToTrim = append(i.paramSpacesToTrim, 0)
 	case modifierChar:
 		if i.currSection == itemSectionName {
 			return false, errors.New("modifier character is not allowed in a function name")
@@ -138,16 +136,38 @@ func (i *parserItem) AddRune(r rune) error {
 	return nil
 }
 
-// GetParameters returns parameters with spaces correctly trimmed
+// GetParameters returns plain parameters (with variable names not interpreted) with spaces correctly trimmed
 func (i *parserItem) GetParameters() []string {
-	params := i.parameters
-	for idx, n := range i.paramSpacesToTrim {
-		params[idx] = strings.TrimRightFunc(params[idx], func(r rune) bool {
-			n--
-			return n >= 0
-		})
+	params := make([]string, len(i.parameters))
+	for idx, param := range i.parameters {
+		if !param.isVariable {
+			params[idx] = param.value
+			continue
+		}
+		params[idx] = strings.TrimSpace(param.value)
 	}
 	return params
+}
+
+// GetInterpretedParameters returns parameters with variables interpreted
+// TODO(ms): find a better way than passing valueStore in
+func (i *parserItem) GetInterpretedParameters(valueStore map[string]string) ([]string, error) {
+	params := make([]string, len(i.parameters))
+	for idx, param := range i.parameters {
+		if !param.isVariable {
+			params[idx] = param.value
+			continue
+		}
+
+		value := strings.TrimSpace(param.value)
+		val, found := valueStore[value]
+		if !found {
+			return nil, fmt.Errorf("variable [%s] not found", value)
+		}
+
+		params[idx] = val
+	}
+	return params, nil
 }
 
 // GetModifiers returns modifiers with spaces trimmed
@@ -163,21 +183,20 @@ func (i *parserItem) GetModifiers() []string {
 func (i *parserItem) addToParameter(r rune) {
 	// initializes parameter
 	if len(i.parameters) < i.currParam+1 {
-		i.parameters = append(i.parameters, "")
-		i.paramSpacesToTrim = append(i.paramSpacesToTrim, 0)
+		i.parameters = append(i.parameters, itemParam{
+			value:      "",
+			isVariable: true,
+		})
 	}
 
 	// eat spaces at the beginning of the parameter
-	if len(i.parameters[i.currParam]) == 0 && r == ' ' {
+	if len(i.parameters[i.currParam].value) == 0 && r == ' ' {
 		return
 	}
-
-	if r == ' ' {
-		i.paramSpacesToTrim[i.currParam]++
-	} else {
-		i.paramSpacesToTrim[i.currParam] = 0
+	if r != ' ' {
+		i.parameters[i.currParam].isVariable = true
 	}
-	i.parameters[i.currParam] += string(r)
+	i.parameters[i.currParam].value += string(r)
 }
 
 // adds rune to current modifier

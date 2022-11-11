@@ -1,12 +1,80 @@
-# YPARS
+# zPARS - Zerops Parser
+
+File parser with support for functions and string modifiers.
 
 ## Description
 
-YAML parser with support for functions and string modifiers.
+### Basic syntax
+
+| symbol              | description                                                |
+|---------------------|------------------------------------------------------------|
+| `<@`                | signifies beginning of a function                          |
+| `(`                 | signifies beginning of function parameters                 |
+| `)`                 | signifies end of function parameters                       |
+| `,`                 | signifies function parameter delimiter                     |
+| `<`                 | without `@` signifies beginning of a string                |
+| `>`                 | signifies end of a string or a function                    |
+| <code>&#124;</code> | denotes a modifier used at the end of a function or string |
+| `\`                 | is used as an escape character                             |
+
+#### Static string example
+
+```
+<this is a static string, with a modifier|upper>
+```
+
+#### Function example
+
+```
+<@generateRandomString(<20>)>
+```
+
+### Functions
+
+#### Parameters
+
+Functions support 2 types of parameters
+
+1. variables
+    - text not enclosed in `<` and `>`
+    - spaces at the beginning and end are trimmed
+    - stored value under variable name is found and passed into the function (if no value is found, error is returned)
+2. static strings
+    - text enclosed in `<` and `>`
+    - spaces between `<` and `>` are NOT trimmed
+    - if modifiers are used, or there are multiple nested strings in one parameter, they are processed first
+    - equivalent of passing `"my string"` into function in some languages
+
+⚠️ When using `getVar` function, parameter MUST be a variable (not enclosed in `<` and `>`)!
+
+<details>
+<summary>Example</summary>
+
+```yaml
+# This generates a random string 20 characters long and stores it into variable named myRandomString
+<@generateRandomStringVar(myRandomString, <20>)>
+
+  # This stores text `this is my custom string` into variable named myCustomString
+<@setVar(myCustomString, <this is my custom string>)>
+
+  # Following function call will result in one of the following values
+  # my static string
+  # FpKWQv6LvVmPKb2CeXTN
+  # this is my custom string
+<@pickRandom(<my static string>, myRandomString, myCustomString)>
+
+  # This will return `THIS IS MY CUSTOM STRING`
+<@getVar(myCustomString)|upper>
+```
+
+</details>
 
 ### Spaces
-In static strings, all leading/trailing spaces between `<` and first occurrence of `|` or `>` (whichever occurs first) 
-are printed out/used in modifier (e.g. sha hash), contrary to functions, which have all trailing spaces (in parameters or modifiers) trimmed.
+
+In static strings, all leading/trailing spaces between `<` and first occurrence of `|` or `>` (whichever occurs first)
+are printed out/used in modifier (e.g. sha hash), contrary to functions, which have all trailing spaces (between
+parameters
+and modifiers) trimmed.
 
 <details>
 <summary>Example</summary>
@@ -22,18 +90,19 @@ Static string:
 
 Function calls:
 
-| input                                                                            | output                      |
-|----------------------------------------------------------------------------------|-----------------------------|
-| <code>This is my <@pickRandom(first, second, third) &#124; upper> string.</code> | `This is my SECOND string.` |
-| <code>This is my <@pickRandom(first,second,third) &#124; upper> string.</code>   | `This is my SECOND string.` |
-| <code>This is my <@pickRandom(first,second,third)&#124; upper> string.</code>    | `This is my SECOND string.` |
+| input                                                                                     | output                      |
+|-------------------------------------------------------------------------------------------|-----------------------------|
+| <code>This is my <@pickRandom(\<first>, \<second>, \<third>) &#124; upper> string.</code> | `This is my SECOND string.` |
+| <code>This is my <@pickRandom(\<first>,\<second>,\<third>) &#124; upper> string.</code>   | `This is my SECOND string.` |
+| <code>This is my <@pickRandom(\<first>,\<second>,\<third>)&#124; upper> string.</code>    | `This is my SECOND string.` |
 
-Function calls must begin with `<@` (no space between `<` and `@`), following syntax won't work
+Function calls must begin with `<@` (no space between `<` and `@`), following syntax WILL NOT work
 
-| input                                                           | output                                 |
-|-----------------------------------------------------------------|----------------------------------------|
-| <code>This is < @generateRandomString(10) &#124; upper>.</code> | `This is  @GENERATERANDOMSTRING(10) .` |
-| <code>This is < @generateRandomString(10)&#124; upper>.</code>  | `This is @GENERATERANDOMSTRING(10).`   |
+| input                                                             | output                                 |
+|-------------------------------------------------------------------|----------------------------------------|
+| <code>This is < @generateRandomString(<10>) &#124; upper>.</code> | `This is  @GENERATERANDOMSTRING(10) .` |
+| <code>This is < @generateRandomString(<10>)&#124; upper>.</code>  | `This is @GENERATERANDOMSTRING(10).`   |
+
 </details>
 
 ### Modifiers
@@ -45,15 +114,15 @@ Modifiers work on function calls and on static strings.
 Input
 
 ```yaml
-  RAND_UPPER_STRING: "<@generateRandomString(50) | upper>"
+  RAND_UPPER_STRING: "<@generateRandomString(<50>) | upper>"
   STATIC_UPPER_STRING: "<Static string that will be turned into upper case| upper>"
 ```
 
 Output
 
 ```yaml
-  RAND_UPPER_STRING: "oWkFjZJiu74QrhRmXb8GERGCkNYudqKT6ZUPYUFispstycrryo"
-  STATIC_UPPER_STRING: "OWKFJZJIU74QRHRMXB8GERGCKNYUDQKT6ZUPYUFISPSTYCRRYO"
+  RAND_UPPER_STRING: "OWKFJZJIU74QRHRMXB8GERGCKNYUDQKT6ZUPYUFISPSTYCRRYO"
+  STATIC_UPPER_STRING: "STATIC STRING THAT WILL BE TURNED INTO UPPER CASE"
 ```
 
 </details>
@@ -67,11 +136,11 @@ Function calls and strings with or without modifier may be nested even multiple 
 Input
 
 ```yaml
-  NESTED_FUNCTIONS: "<@generateRandomString(<@generateRandomInt(10, 50)>)>"
+  NESTED_FUNCTIONS: "<@generateRandomString(<@generateRandomInt(<10>, <50>)>)>"
   NESTED_STRINGS: "<My normal <And My NeStED| upper> strings>"
   NESTED_STRING_MODIFIERS: "<My normal <And My NeStED| upper> strings| sha256>"
-  NESTED_STRING_IN_FUNCTION: "<@namedString(name, normal string <THAT IS ALL LOWER CASE| lower> even though middle part was not)>"
-  YES_THIS_IS_EXCESSIVE: "<@namedString(randomLengthString, <@generateRandomString(<@generateRandomInt(<@generateRandomInt(10, 50)>, <@generateRandomInt(51, 100)>)>)>) | upper>"
+  NESTED_STRING_IN_FUNCTION: "<@setVar(<name>, <normal string <THAT IS ALL LOWER CASE| lower> even though middle part was not>)>"
+  YES_THIS_IS_EXCESSIVE: "<@setVar(<randomLengthString>, <@generateRandomString(<@generateRandomInt(<@generateRandomInt(<10>, <50>)>, <@generateRandomInt(<51>, <100>)>)>)>) | upper>"
 ```
 
 Output
@@ -101,16 +170,16 @@ This is needed so backslash is preserved through both YPARS and YAML parsing (as
 Input
 
 ```yaml
-  ESCAPED_NESTED_FUNCTIONS: "\<@generateRandomString(\<@generateRandomInt(10, 50)\>)\>"
-  ESCAPE_TEST: "\< \<\\\\ \\\\\\\\ \\\\\< <\\\\> \\\\\> \\\\\\\\ \\\\\> \>"
+  ESCAPED_FUNCTIONS: "\<@generateRandomString(\<@generateRandomInt(\<10\>, \<50\>)\>)\>"
+  ESCAPED_BACKSLASHES: "\< \<\\\\ \\\\\\\\ \\\\\< <\\\\> \\\\\> \\\\\\\\ \\\\\> \>"
   ESCAPE_TEST_WITH_ITEM: "\\\\<sTriNG \\\\ witH, mOdiFiers| title>\\\\"
 ```
 
 Output
 
 ```yaml
-  ESCAPED_NESTED_FUNCTIONS: "<@generateRandomString(<@generateRandomInt(10, 50)>)>"
-  ESCAPE_TEST: "< <\\ \\\\ \\< \\ \\> \\\\ \\> >"
+  ESCAPED_FUNCTIONS: "<@generateRandomString(<@generateRandomInt(<10>, <50>)>)>"
+  ESCAPED_BACKSLASHES: "< <\\ \\\\ \\< \\ \\> \\\\ \\> >"
   ESCAPE_TEST_WITH_ITEM: "\\STriNG \\ WitH, MOdiFiers\\"
 ```
 
@@ -161,7 +230,8 @@ func main() {
 
 #### Error handling
 
-`Parse` function returns standard `error` or a [`MetaError`](./src/metaError/errors.go) that contains metadata in following format `map[string][]string`
+`Parse` function returns standard `error` or a [`MetaError`](./src/metaError/errors.go) that contains error string and
+metadata in `map[string][]string` format
 
 Standard `metaData` fields (always present):
 
@@ -181,24 +251,24 @@ Following fields are set only when error occurred during item parsing:
 | itemParams | if itemType is function, all parsed params will be in this field  |
 | itemType   | type of the processed item, one of: `string, function`            |
 
-
 <details>
 <summary>Example</summary>
 
 ```go
 map[
-    functionCalls:[66]
-    functionCallsLimit:[200]
-    item:[mercuryInRetrograde]
-    itemParams:[mercury is in retrograde mercury is not in retrograde my third unexpected param]
-    itemType:[function]
-    positionColumn:[140]
-    positionLine:[92]
-    positionNear:[e>]
+functionCalls:[66]
+functionCallsLimit:[200]
+item:[mercuryInRetrograde]
+itemParams:[mercury is in retrograde mercury is not in retrograde my third unexpected param]
+itemType:[function]
+positionColumn:[140]
+positionLine:[92]
+positionNear:[e>]
 ]
 ```
 
 Json formatted
+
 ```json
 {
   "functionCalls": [
@@ -229,8 +299,8 @@ Json formatted
   ]
 }
 ```
-</details>
 
+</details>
 
 ### As a binary
 
@@ -252,7 +322,7 @@ When error occurs, binary returns a formatted error to the output
 ```yaml
 ...
 ...
-      MERCURY_RETROGRADE: "<@mercuryInRetrograde(mercury is in retrograde, mercury is not in retrograde, my third unexpected param) | title>"
+MERCURY_RETROGRADE: "<@mercuryInRetrograde(<mercury is in retrograde>, <mercury is not in retrograde>, <my third unexpected param>) | title>"
 ```
 
 ```text
@@ -265,25 +335,26 @@ itemParams: mercury is in retrograde
             my third unexpected param
 itemType: function
 positionColumn: 140
-positionLine: 94
+positionLine: 97
 positionNear: e>
 ```
+
 </details>
 
 ## Supported functions
 
-| name                      | description                                                                      | example                                     |
-|---------------------------|----------------------------------------------------------------------------------|---------------------------------------------|
-| generateRandomString      | generates random string in requested length                                      | `<@generateRandomString(50)>`               |
-| generateRandomInt         | generates random in int range [min, max]                                         | `<@generateRandomInt(-999, 999)>`           |
-| pickRandom                | selects one of the provided parameters at random                                 | `<@pickRandom(one, two, three, four)>`      |
-| generateRandomNamedString | generates random string and stores it for later use                              | `<@generateRandomNamedString(myName, 50)>`  |
-| namedString               | stores provided content for later use                                            | `<@namedString(myName, my string content)>` |
-| getNamedString            | returns content of a stored string                                               | `<@getNamedString(myName)>`                 |
-| getDateTime               | returns current date and time in specified format                                | `<@getDatetime(DD.MM.YYYY HH:mm:ss)>`       |
-| generateED25519Key        | generates Public and Private ED25519 key pairs and stores them for later use     | `<@generateED25519Key(myEd25519Key)>`       |
-| generateRSA4096Key        | generates Public and Private RSA 4096bit key pairs and stores them for later use | `<@generateRSA4096Key(myRSA4096Key)>`       |
-| mercuryInRetrograde       | returns first parameter if Mercury IS in retrograde or second if it is not       | `<@mercuryInRetrograde(Yes, No)>`           |
+| name                    | description                                                                      | example                                        |
+|-------------------------|----------------------------------------------------------------------------------|------------------------------------------------|
+| generateRandomString    | generates random string in requested length                                      | `<@generateRandomString(<50>)>`                |
+| generateRandomInt       | generates random in int range [min, max]                                         | `<@generateRandomInt(<-999>, <999>)>`          |
+| pickRandom              | selects one of the provided parameters at random                                 | `<@pickRandom(<one>, <two>, <three>, <four>)>` |
+| generateRandomStringVar | generates random string and stores it for later use                              | `<@generateRandomStringVar(<myName>, <50>)>`   |
+| setVar                  | stores provided content for later use                                            | `<@setVar(<myName>, <my string content>)>`     |
+| getVar                  | returns content of a stored variable                                             | `<@getVar(myName)>`                            |
+| getDateTime             | returns current date and time in specified format                                | `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>`        |
+| generateED25519Key      | generates Public and Private ED25519 key pairs and stores them for later use     | `<@generateED25519Key(<myEd25519Key>)>`        |
+| generateRSA4096Key      | generates Public and Private RSA 4096bit key pairs and stores them for later use | `<@generateRSA4096Key(<myRSA4096Key>)>`        |
+| mercuryInRetrograde     | returns first parameter if Mercury IS in retrograde or second if it is not       | `<@mercuryInRetrograde(<Yes>, <No>)>`          |
 
 ---
 
@@ -300,10 +371,10 @@ Generates random string in requested length
 
 #### Example
 
-| input                         | output               |
-|-------------------------------|----------------------|
-| `<@generateRandomString(20)>` | bc84df942e8290438c21 |
-| `<@generateRandomString(10)>` | 94a2f484de           |
+| input                           | output               |
+|---------------------------------|----------------------|
+| `<@generateRandomString(<20>)>` | bc84df942e8290438c21 |
+| `<@generateRandomString(<10>)>` | 94a2f484de           |
 
 </details>
 
@@ -323,10 +394,10 @@ Generates random `int` in range `[min, max]`
 
 #### Example
 
-| input                             | output |
-|-----------------------------------|--------|
-| `<@generateRandomInt(-999, 999)>` | -155   |
-| `<@generateRandomInt(0, 999999)>` | 6659   |
+| input                                 | output |
+|---------------------------------------|--------|
+| `<@generateRandomInt(<-999>, <999>)>` | -155   |
+| `<@generateRandomInt(<0>, <999999>)>` | 6659   |
 
 </details>
 
@@ -345,18 +416,18 @@ Selects one of the provided parameters at random
 
 #### Example
 
-| input                                  | output |
-|----------------------------------------|--------|
-| `<@pickRandom(one, two, three, four)>` | three  |
-| `<@pickRandom(one, two, three, four)>` | one    |
+| input                                          | output |
+|------------------------------------------------|--------|
+| `<@pickRandom(<one>, <two>, <three>, <four>)>` | three  |
+| `<@pickRandom(<one>, <two>, <three>, <four>)>` | one    |
 
 </details>
 
 ---
 
-### `generateRandomNamedString(name, length)`
+### `generateRandomStringVar(name, length)`
 
-Generates random string and stores it for later use (using `getNamedString`) under provided name.
+Generates random string and stores it for later use (using [`getVar`](#getvarname)) under provided name.
 String is also returned as the output of the function call.
 
 Any content that already existed under provided name is overwritten.
@@ -364,24 +435,24 @@ Any content that already existed under provided name is overwritten.
 
 #### Parameters
 
-| name   | type     | description                                                           |
-|--------|----------|-----------------------------------------------------------------------|
-| name   | `string` | name under which string may be retrieved later using `getNamedString` |
-| length | `int`    | required string length (max. allowed value `1024`)                    |
+| name   | type     | description                                                   |
+|--------|----------|---------------------------------------------------------------|
+| name   | `string` | name under which string may be retrieved later using `getVar` |
+| length | `int`    | required string length (max. allowed value `1024`)            |
 
 #### Example
 
-| input                                              | output                         |
-|----------------------------------------------------|--------------------------------|
-| `<@generateRandomNamedString(my20CharString, 30)>` | pj72x83UBgccTYfZRj3ytbApYeivq2 |
-| `<@generateRandomNamedString(my15CharString, 15)>` | yhaKq7gyPoiVhwL                |
-| `<@getNamedString(my15CharString)>`                | yhaKq7gyPoiVhwL                |
+| input                                                | output                         |
+|------------------------------------------------------|--------------------------------|
+| `<@generateRandomStringVar(<my20CharString>, <30>)>` | pj72x83UBgccTYfZRj3ytbApYeivq2 |
+| `<@generateRandomStringVar(<my15CharString>, <15>)>` | yhaKq7gyPoiVhwL                |
+| `<@getVar(my15CharString)>`                          | yhaKq7gyPoiVhwL                |
 
 </details>
 
 ---
 
-### `namedString(name, content)`
+### `setVar(name, content)`
 
 Stores provided content for later use under provided name.
 String is also returned as the output of the function call.
@@ -391,28 +462,28 @@ Any content that already existed under provided name is overwritten.
 
 #### Parameters
 
-| name    | type     | description                                                           |
-|---------|----------|-----------------------------------------------------------------------|
-| name    | `string` | name under which string may be retrieved later using `getNamedString` |
-| content | `string` | content to be stored                                                  |
+| name    | type     | description                                                   |
+|---------|----------|---------------------------------------------------------------|
+| name    | `string` | name under which string may be retrieved later using `getVar` |
+| content | `string` | content to be stored                                          |
 
 #### Example
 
-| input                                                                 | output                              |
-|-----------------------------------------------------------------------|-------------------------------------|
-| `<@namedString(myFirstString, content of my first string)>`           | content of my first string          |
-| `<@namedString(mySecondString, content of my second string)>`         | content of my second string         |
-| `<@namedString(mySecondString, updated content of my second string)>` | updated content of my second string |
-| `<@getNamedString(mySecondString)>`                                   | updated content of my second string |
+| input                                                                | output                              |
+|----------------------------------------------------------------------|-------------------------------------|
+| `<@setVar(<myFirstString>, <content of my first string>)>`           | content of my first string          |
+| `<@setVar(<mySecondString>, <content of my second string>)>`         | content of my second string         |
+| `<@setVar(<mySecondString>, <updated content of my second string>)>` | updated content of my second string |
+| `<@getVar(mySecondString)>`                                          | updated content of my second string |
 
 </details>
 
 ---
 
-### `getNamedString(name)`
+### `getVar(name)`
 
-Returns content stored under provided name.
-If no content was stored under provided name, error is returned.
+Returns content stored under provided variable (parameter MUST NOT be enclosed in `<` and `>`).
+If variable is not found, error is returned.
 <details>
 
 #### Parameters
@@ -423,10 +494,10 @@ If no content was stored under provided name, error is returned.
 
 #### Example
 
-| input                                       | output                               |
-|---------------------------------------------|--------------------------------------|
-| `<@getNamedString(myExistingCustomString)>` | content of my existing custom string |
-| `<@getNamedString(nonExistingString)>`      | `parsing will fail with an error`    |
+| input                               | output                                                                   |
+|-------------------------------------|--------------------------------------------------------------------------|
+| `<@getVar(myExistingCustomString)>` | content of my existing custom string                                     |
+| `<@getVar(nonExistingString)>`      | parsing will fail with an error `variable [nonExistingString] not found` |
 
 </details>
 
@@ -474,10 +545,10 @@ Returns current date and time in specified format.
 
 #### Example
 
-| input                                 | output              |
-|---------------------------------------|---------------------|
-| `<@getDatetime(DD.MM.YYYY HH:mm:ss)>` | 03.11.2022 12:32:35 |
-| `<@getDatetime(DD.MM.YYYY)>`          | 03.11.2022          |
+| input                                   | output              |
+|-----------------------------------------|---------------------|
+| `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>` | 03.11.2022 12:32:35 |
+| `<@getDatetime(<DD.MM.YYYY>)>`          | 03.11.2022          |
 
 </details>
 
@@ -499,12 +570,12 @@ Same goes for retrieval of stored key parts except public ssh key which is in on
 
 #### Generated versions
 
-| suffix     | description                                                     | example                                |
-|------------|-----------------------------------------------------------------|----------------------------------------|
-| Public     | public key version, also returned when the method is called     | `<@getNamedString(keyNamePublic)>`     |
-| PublicSsh  | ssh formatted version used for authorized keys file             | `<@getNamedString(keyNamePublicSsh)>`  |
-| Private    | private key version in standard format (not usable for OpenSSH) | `<@getNamedString(keyNamePrivate)>`    |
-| PrivateSsh | private key version in Open SSH format                          | `<@getNamedString(keyNamePrivateSsh)>` |
+| suffix     | description                                                     | example                        |
+|------------|-----------------------------------------------------------------|--------------------------------|
+| Public     | public key version, also returned when the method is called     | `<@getVar(keyNamePublic)>`     |
+| PublicSsh  | ssh formatted version used for authorized keys file             | `<@getVar(keyNamePublicSsh)>`  |
+| Private    | private key version in standard format (not usable for OpenSSH) | `<@getVar(keyNamePrivate)>`    |
+| PrivateSsh | private key version in Open SSH format                          | `<@getVar(keyNamePrivateSsh)>` |
 
 #### Example
 
@@ -512,15 +583,15 @@ Input
 
 ```yaml
   MY_PUBLIC_KEY: |
-    <@generateED25519Key(keyName)>
+    <@generateED25519Key(<keyName>)>
 
-  MY_PUBLIC_SSH_KEY: "<@getNamedString(keyNamePublicSsh)>"
+  MY_PUBLIC_SSH_KEY: "<@getVar(keyNamePublicSsh)>"
 
   MY_PRIVATE_KEY: |
-    <@getNamedString(keyNamePrivate)>
+    <@getVar(keyNamePrivate)>
 
   MY_PRIVATE_SSH_KEY: |
-    <@getNamedString(keyNamePrivateSsh)>
+    <@getVar(keyNamePrivateSsh)>
 ```
 
 Output
@@ -568,11 +639,11 @@ Same goes for retrieval of stored key parts except public ssh key which is in on
 
 #### Generated versions
 
-| suffix    | description                                                 | example                               |
-|-----------|-------------------------------------------------------------|---------------------------------------|
-| Public    | public key version, also returned when the method is called | `<@getNamedString(keyNamePublic)>`    |
-| PublicSsh | ssh formatted version used for authorized keys file         | `<@getNamedString(keyNamePublicSsh)>` |
-| Private   | private key version in standard format                      | `<@getNamedString(keyNamePrivate)>`   |
+| suffix    | description                                                 | example                       |
+|-----------|-------------------------------------------------------------|-------------------------------|
+| Public    | public key version, also returned when the method is called | `<@getVar(keyNamePublic)>`    |
+| PublicSsh | ssh formatted version used for authorized keys file         | `<@getVar(keyNamePublicSsh)>` |
+| Private   | private key version in standard format                      | `<@getVar(keyNamePrivate)>`   |
 
 #### Example
 
@@ -580,12 +651,12 @@ Input
 
 ```yaml
   MY_PUBLIC_KEY: |
-    <@generateED25519Key(keyName)>
+    <@generateED25519Key(<keyName>)>
 
-  MY_PUBLIC_SSH_KEY: "<@getNamedString(keyNamePublicSsh)>"
+  MY_PUBLIC_SSH_KEY: "<@getVar(keyNamePublicSsh)>"
 
   MY_PRIVATE_KEY: |
-    <@getNamedString(keyNamePrivate)>
+    <@getVar(keyNamePrivate)>
 ```
 
 Output (keys are truncated)
@@ -648,9 +719,9 @@ Returns first parameter if Mercury IS in retrograde or second if it is not.
 
 #### Example
 
-| input                             | output |
-|-----------------------------------|--------|
-| `<@mercuryInRetrograde(Yes, No)>` | No     |
+| input                                 | output |
+|---------------------------------------|--------|
+| `<@mercuryInRetrograde(<Yes>, <No>)>` | No     |
 
 </details>
 </details>
@@ -672,26 +743,26 @@ Returns first parameter if Mercury IS in retrograde or second if it is not.
 
 ### Examples
 
-| input                                                      | output                                                                                                                           |
-|------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| `<@generateRandomNamedString(myPassword, 30)>`             | 7a14c8e74bc98a0d74253b1d1a4ef6                                                                                                   |
-| <code><@getNamedString(myPassword) &#124; sha256></code>   | 081b91d6dff5036229a92e2442fb65d7c8124571d4e70a2ac4729aeb86957407                                                                 |
-| <code><@getNamedString(myPassword) &#124; sha512></code>   | 89c05547de0aa4926512a958f95ab8bf4096ceec63ad5aad4266890bfa059e0cc98917c54276ba4cd61f1dde4c8efda948fc967885c9dd50558ed939722ca10c |
-| <code><@getNamedString(myPassword) &#124; bcrypt></code>   | $2a$10$CxKZX0yIxdc7ts6eI5aBu.g.heAsFcePdMDEpnlViTlo3vGc//PXe                                                                     |
-| <code><@getNamedString(myPassword) &#124; argon2id></code> | $argon2id$v=19$m=98304,t=1,p=3$uWBpmoUT3sfckXHyRF9hlg$8bGtNffuHxaRIgN99zCmJeGEYJF5BY2J9TwzqmezP28                                |
-| <code><sTATic StrINg wiTH a mOdifIER&#124; upper></code>   | STATIC STRING WITH A MODIFIER                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER&#124; lower></code>   | static string with a modifier                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER&#124; title></code>   | Static String With A Modifier                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER&#124; noop></code>    | sTATic StrINg wiTH a mOdifIER                                                                                                    |
+| input                                                    | output                                                                                                                           |
+|----------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| `<@generateRandomStringVar(<myPassword>, <30>)>`         | 7a14c8e74bc98a0d74253b1d1a4ef6                                                                                                   |
+| <code><@getVar(myPassword) &#124; sha256></code>         | 081b91d6dff5036229a92e2442fb65d7c8124571d4e70a2ac4729aeb86957407                                                                 |
+| <code><@getVar(myPassword) &#124; sha512></code>         | 89c05547de0aa4926512a958f95ab8bf4096ceec63ad5aad4266890bfa059e0cc98917c54276ba4cd61f1dde4c8efda948fc967885c9dd50558ed939722ca10c |
+| <code><@getVar(myPassword) &#124; bcrypt></code>         | $2a$10$CxKZX0yIxdc7ts6eI5aBu.g.heAsFcePdMDEpnlViTlo3vGc//PXe                                                                     |
+| <code><@getVar(myPassword) &#124; argon2id></code>       | $argon2id$v=19$m=98304,t=1,p=3$uWBpmoUT3sfckXHyRF9hlg$8bGtNffuHxaRIgN99zCmJeGEYJF5BY2J9TwzqmezP28                                |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; upper></code> | STATIC STRING WITH A MODIFIER                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; lower></code> | static string with a modifier                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; title></code> | Static String With A Modifier                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; noop></code>  | sTATic StrINg wiTH a mOdifIER                                                                                                    |
 
 ### Bcrypt configuration
 
-- cost: `10`
+- cost: `11`
 
 ### Argon2id configuration
 
+- memory: `64MiB`
+- iterations: `2`
+- parallelism: `2`
 - saltLen: `16B`
-- memory: `96MiB`
-- iterations: `1`
-- parallelism: `3`
 - keyLength: `32B`
