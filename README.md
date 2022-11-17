@@ -1,4 +1,4 @@
-# zPars - Zerops Parser
+# zParser - Zerops Parser
 
 File parser with support for functions and string modifiers.
 
@@ -6,16 +6,16 @@ File parser with support for functions and string modifiers.
 
 ### Basic syntax
 
-| symbol              | description                                                |
-|---------------------|------------------------------------------------------------|
-| `<@`                | signifies beginning of a function                          |
-| `(`                 | signifies beginning of function parameters                 |
-| `)`                 | signifies end of function parameters                       |
-| `,`                 | signifies function parameter delimiter                     |
-| `<`                 | without `@` signifies beginning of a string                |
-| `>`                 | signifies end of a string or a function                    |
-| <code>&#124;</code> | denotes a modifier used at the end of a function or string |
-| `\`                 | is used as an escape character                             |
+| symbol              | description                                      |
+|---------------------|--------------------------------------------------|
+| `<@`                | beginning of a function                          |
+| `(`                 | beginning of function parameters                 |
+| `)`                 | end of function parameters                       |
+| `,`                 | function parameter delimiter                     |
+| `<`                 | beginning of a string (without `@`)              |
+| `>`                 | end of a string or a function                    |
+| <code>&#124;</code> | modifier used at the end of a function or string |
+| `\`                 | an escape character                              |
 
 #### Static string example
 
@@ -29,14 +29,14 @@ File parser with support for functions and string modifiers.
 <@generateRandomString(<20>)>
 ```
 
-### Functions
+---
 
-#### Parameters
+### Function parameters
 
 Functions support 2 types of parameters
 
 1. variables
-    - text not enclosed in `<` and `>`
+    - text NOT enclosed in `<` and `>`
     - spaces at the beginning and end are trimmed
     - stored value under variable name is found and passed into the function (if no value is found, error is returned)
 2. static strings
@@ -69,12 +69,12 @@ Functions support 2 types of parameters
 
 </details>
 
+---
+
 ### Spaces
 
 In static strings, all leading/trailing spaces between `<` and first occurrence of `|` or `>` (whichever occurs first)
-are printed out/used in modifier (e.g. sha hash), contrary to functions, which have all trailing spaces (between
-parameters
-and modifiers) trimmed.
+are preserved, contrary to functions, which have all trailing spaces (between parameters and modifiers) trimmed.
 
 <details>
 <summary>Example</summary>
