@@ -175,7 +175,7 @@ func TestImportParser_Parse(t *testing.T) {
 			name:   "date time",
 			fields: getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY hh:mm:ss>)>`),
 			want: func(s string) error {
-				const layout = "01.02.2006 15:04:05"
+				const layout = "02.01.2006 15:04:05"
 				t, err := time.Parse(layout, s)
 				if err != nil {
 					return err
@@ -183,6 +183,10 @@ func TestImportParser_Parse(t *testing.T) {
 				if t.Format(layout) != s {
 					return fmt.Errorf("received date time string [%s] does not match parsed output [%s]", s, t.Format(layout))
 				}
+				if !t.After(time.Now().Add(-time.Second)) || !time.Now().Add(-5*time.Second).Before(t) {
+					return fmt.Errorf("received date time [%s] is not between `now-5s` and `now`", t.Format(layout))
+				}
+
 				return nil
 			},
 		},
