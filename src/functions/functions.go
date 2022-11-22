@@ -44,6 +44,7 @@ func NewFunctions(valueStore map[string]string) *Functions {
 		"setVar":                  f.setVar,
 		"getVar":                  f.getVar,
 		"generateED25519Key":      f.generateED25519Key,
+		"generateRSA2048Key":      f.generateRSA2048Key,
 		"generateRSA4096Key":      f.generateRSA4096Key,
 	}
 	return f
@@ -111,11 +112,18 @@ func (f Functions) pickRandom(param ...string) (string, error) {
 }
 
 // returns date time using formatted by format inside first parameter which supports gostradamus.FormatToken values
+// if second parameter is provided, it is used as a timezone, otherwise UTC is assumed
 func (f Functions) getDatetime(param ...string) (string, error) {
-	if err := paramCountCheck(1, len(param)); err != nil {
-		return "", err
+	if len(param) == 1 {
+		return gostradamus.UTCNow().Format(param[0]), nil
 	}
-	return gostradamus.Now().Format(param[0]), nil
+	if len(param) == 2 {
+		if _, err := gostradamus.LoadLocation(param[1]); err != nil {
+			return "", err
+		}
+		return gostradamus.NowInTimezone(gostradamus.Timezone(param[1])).Format(param[0]), nil
+	}
+	return "", fmt.Errorf("invalid parameter count, at 1 or 2 expected %d provided", len(param))
 }
 
 // returns first parameter if Mercury is in retrograde and second parameter if it is NOT in retrograde
@@ -161,12 +169,6 @@ func (f Functions) getVar(param ...string) (string, error) {
 		return "", err
 	}
 	return param[0], nil
-
-	// val, found := f.values[param[0]]
-	// if !found {
-	// 	return "", fmt.Errorf("no stored value for key [%s]", param[0])
-	// }
-	// return val, nil
 }
 
 func (f Functions) generateED25519Key(param ...string) (string, error) {
@@ -208,12 +210,24 @@ func (f Functions) generateED25519Key(param ...string) (string, error) {
 	return f.values[name+"Public"], nil
 }
 
+func (f Functions) generateRSA2048Key(param ...string) (string, error) {
+	if err := paramCountCheck(1, len(param)); err != nil {
+		return "", err
+	}
+
+	return f.generateRSAKey(param[0], 2048)
+}
+
 func (f Functions) generateRSA4096Key(param ...string) (string, error) {
 	if err := paramCountCheck(1, len(param)); err != nil {
 		return "", err
 	}
 
-	privateKey, err := rsa.GenerateKey(cryptoRand.Reader, 4096)
+	return f.generateRSAKey(param[0], 4096)
+}
+
+func (f Functions) generateRSAKey(name string, bits int) (string, error) {
+	privateKey, err := rsa.GenerateKey(cryptoRand.Reader, bits)
 	if err != nil {
 		return "", err
 	}
@@ -237,7 +251,6 @@ func (f Functions) generateRSA4096Key(param ...string) (string, error) {
 	}
 	publicSshKey, _ := ssh.NewPublicKey(privateKey.Public())
 
-	name := param[0]
 	f.values[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
 	f.values[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
 	f.values[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))

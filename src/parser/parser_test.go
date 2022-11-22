@@ -172,19 +172,49 @@ func TestImportParser_Parse(t *testing.T) {
 			},
 		},
 		{
-			name:   "date time",
-			fields: getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY hh:mm:ss>)>`),
+			name:        "date time invalid timezone",
+			fields:      getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Totally/Invalid/Zone>)>`),
+			wantMetaErr: true,
+		},
+		{
+			name:   "date time UTC",
+			fields: getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>`),
 			want: func(s string) error {
 				const layout = "02.01.2006 15:04:05"
-				t, err := time.Parse(layout, s)
+				t, err := time.ParseInLocation(layout, s, time.UTC)
 				if err != nil {
 					return err
 				}
 				if t.Format(layout) != s {
 					return fmt.Errorf("received date time string [%s] does not match parsed output [%s]", s, t.Format(layout))
 				}
-				if !t.After(time.Now().Add(-time.Second)) || !time.Now().Add(-5*time.Second).Before(t) {
-					return fmt.Errorf("received date time [%s] is not between `now-5s` and `now`", t.Format(layout))
+				n := time.Now().UTC()
+				if !t.After(n.Add(-time.Second)) || !n.Add(-5*time.Second).Before(t) {
+					return fmt.Errorf("received date time [%s] is not between `now-5s` and `now` [%s]", t.Format(layout), n.Format(layout))
+				}
+
+				return nil
+			},
+		},
+		{
+			name:   "date time Europe/Prague",
+			fields: getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Europe/Prague>)>`),
+			want: func(s string) error {
+				const layout = "02.01.2006 15:04:05"
+				loc, err := time.LoadLocation("Europe/Prague")
+				if err != nil {
+					return fmt.Errorf("failed to load location for `Europe/Prague`: %w", err)
+				}
+				t, err := time.ParseInLocation(layout, s, loc)
+				if err != nil {
+					return err
+				}
+				if t.Format(layout) != s {
+					return fmt.Errorf("received date time string [%s] does not match parsed output [%s]", s, t.Format(layout))
+				}
+				n := time.Now().In(loc)
+				if !t.After(n.Add(-time.Second)) || !n.Add(-5*time.Second).Before(t) {
+					return fmt.Errorf("received date time [%s] is not between `now-5s` and `now` [%s]", t.Format(layout), n.Format(layout))
 				}
 
 				return nil
@@ -275,6 +305,19 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			// tests complete generation of public, public ssh and private keys
+			name:   "generate RSA2048 key",
+			fields: getFields(1024, 4, "<@generateRSA2048Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPublicSsh)>"),
+			want: func(s string) error {
+				parts := strings.Split(s, "|")
+				if len(parts) != 3 {
+					return fmt.Errorf("expected 3 parts, found %d, got = %v", len(parts), s)
+				}
+
+				return validateRsaKey(parts[0], parts[1], parts[2])
+			},
+		},
+		{
+			// tests complete generation of public, public ssh and private keys
 			name:   "generate RSA4096 key",
 			fields: getFields(1024, 4, "<@generateRSA4096Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPublicSsh)>"),
 			want: func(s string) error {
@@ -283,42 +326,7 @@ func TestImportParser_Parse(t *testing.T) {
 					return fmt.Errorf("expected 3 parts, found %d, got = %v", len(parts), s)
 				}
 
-				pubBlock, _ := pem.Decode([]byte(parts[0]))
-				if pubBlock == nil || pubBlock.Type != "PUBLIC KEY" {
-					return fmt.Errorf("failed to decode PEM block containing public key: %+v \n%s", pubBlock, parts[0])
-				}
-				pubKey, err := x509.ParsePKIXPublicKey(pubBlock.Bytes)
-				if err != nil {
-					return err
-				}
-
-				privBlock, _ := pem.Decode([]byte(parts[1]))
-				if privBlock == nil || privBlock.Type != "PRIVATE KEY" {
-					return fmt.Errorf("failed to decode PEM block containing private key: %+v \n %s", privBlock, s)
-				}
-				privKey, err := x509.ParsePKCS8PrivateKey(privBlock.Bytes)
-				if err != nil {
-					return err
-				}
-
-				if !(privKey.(*rsa.PrivateKey)).PublicKey.Equal(pubKey) {
-					return fmt.Errorf("provided privateKey does not match provided publicKey: %v", s)
-				}
-
-				// TODO(ms): verify if public ssh key is valid for the private key
-				// pubSshBlock, _, _, _, err := ssh.ParseAuthorizedKey([]byte(parts[2]))
-				// if err != nil {
-				// 	return err
-				// }
-				// pubSshKey, err := x509.ParsePKCS1PublicKey(pubSshBlock.Marshal())
-				// if err != nil {
-				// 	return err
-				// }
-				// if !(pubKey.(*rsa.PublicKey).Equal(pubSshKey)) {
-				// 	return fmt.Errorf("provided publicKey does not match provided publicKeySsh: %v", s)
-				// }
-
-				return nil
+				return validateRsaKey(parts[0], parts[1], parts[2])
 			},
 		},
 		// Modifiers
@@ -413,4 +421,46 @@ func TestImportParser_Parse(t *testing.T) {
 			}
 		})
 	}
+}
+
+func validateRsaKey(public, private, publicSsh string) error {
+	pubBlock, _ := pem.Decode([]byte(public))
+	if pubBlock == nil || pubBlock.Type != "PUBLIC KEY" {
+		return fmt.Errorf("failed to decode PEM block containing public key: %+v \n%s", pubBlock, public)
+	}
+	pubKey, err := x509.ParsePKIXPublicKey(pubBlock.Bytes)
+	if err != nil {
+		return err
+	}
+
+	privBlock, _ := pem.Decode([]byte(private))
+	if privBlock == nil || privBlock.Type != "PRIVATE KEY" {
+		return fmt.Errorf("failed to decode PEM block containing private key: %+v \n%s", privBlock, private)
+	}
+	privKey, err := x509.ParsePKCS8PrivateKey(privBlock.Bytes)
+	if err != nil {
+		return err
+	}
+
+	if !(privKey.(*rsa.PrivateKey)).PublicKey.Equal(pubKey) {
+		return fmt.Errorf("provided privateKey does not match provided publicKey: %v\n%v", public, private)
+	}
+
+	// TODO(ms): verify if public ssh key is valid for the private key
+	// pubSshBlock, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicSsh))
+	// if err != nil {
+	// 	return err
+	// }
+	// pubSshKey, err := x509.ParsePKCS1PublicKey(pubSshBlock.Marshal())
+	// if err != nil {
+	// 	return err
+	// }
+	// if !(pubKey.(*rsa.PublicKey).Equal(pubSshKey)) {
+	// 	return fmt.Errorf("provided publicKey does not match provided publicKeySsh: %v\n%v", public, publicSsh)
+	// }
+	// if !(privKey.(*rsa.PrivateKey).PublicKey.Equal(pubSshKey)) {
+	// 	return fmt.Errorf("provided publicKey does not match provided publicKeySsh: %v\n%v", public, publicSsh)
+	// }
+
+	return nil
 }

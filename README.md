@@ -351,8 +351,9 @@ positionNear: e>
 | generateRandomStringVar | generates random string and stores it for later use                              | `<@generateRandomStringVar(<myName>, <50>)>`   |
 | setVar                  | stores provided content for later use                                            | `<@setVar(<myName>, <my string content>)>`     |
 | getVar                  | returns content of a stored variable                                             | `<@getVar(myName)>`                            |
-| getDateTime             | returns current date and time in specified format                                | `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>`        |
+| getDateTime             | returns current date and time in specified format and a timezone                 | `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <GMT>)>` |
 | generateED25519Key      | generates Public and Private ED25519 key pairs and stores them for later use     | `<@generateED25519Key(<myEd25519Key>)>`        |
+| generateRSA2048Key      | generates Public and Private RSA 2048bit key pairs and stores them for later use | `<@generateRSA2048Key(<myRSA2048Key>)>`        |
 | generateRSA4096Key      | generates Public and Private RSA 4096bit key pairs and stores them for later use | `<@generateRSA4096Key(<myRSA4096Key>)>`        |
 | mercuryInRetrograde     | returns first parameter if Mercury IS in retrograde or second if it is not       | `<@mercuryInRetrograde(<Yes>, <No>)>`          |
 
@@ -503,16 +504,17 @@ If variable is not found, error is returned.
 
 ---
 
-### `getDateTime(format)`
+### `getDateTime(format, [timezone])`
 
 Returns current date and time in specified format.
 <details>
 
 #### Parameters
 
-| name   | type     | description                |
-|--------|----------|----------------------------|
-| format | `string` | see supported tokens below |
+| name     | type     | description                                                                                                                    |
+|----------|----------|--------------------------------------------------------------------------------------------------------------------------------|
+| format   | `string` | see supported tokens below                                                                                                     |
+| timezone | `string` | timezone in format `UTC`, `GMT`, `Europe/Prague`, `Etc/GMT+2`, `America/Chicago` (optional, if not provided, `UTC` is assumed) |
 
 #### Supported tokens
 
@@ -545,10 +547,11 @@ Returns current date and time in specified format.
 
 #### Example
 
-| input                                   | output              |
-|-----------------------------------------|---------------------|
-| `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>` | 03.11.2022 12:32:35 |
-| `<@getDatetime(<DD.MM.YYYY>)>`          | 03.11.2022          |
+| input                                                    | output              |
+|----------------------------------------------------------|---------------------|
+| `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>`                  | 03.11.2022 12:32:35 |
+| `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Europe/Prague>)>` | 03.11.2022 13:32:35 |
+| `<@getDatetime(<DD.MM.YYYY>)>`                           | 03.11.2022          |
 
 </details>
 
@@ -568,7 +571,7 @@ Same goes for retrieval of stored key parts except public ssh key which is in on
 |------|----------|-------------------------------------------------------------------------|
 | name | `string` | name under which all key versions will be stored (with suffixes bellow) |
 
-#### Generated versions
+#### Generated keys
 
 | suffix     | description                                                     | example                        |
 |------------|-----------------------------------------------------------------|--------------------------------|
@@ -623,6 +626,17 @@ Output
 
 ---
 
+### generateRSA2048Key(name)
+
+Generates Public and Private `RSA` `2048bit` key pairs and stores them for later use under `name`+`version suffix`.
+
+⚠️ Function produces strings with newline characters and MUST be used with Literal scalar style in YAML.
+Same goes for retrieval of stored key parts except public ssh key which is in one line. See example.
+
+For details see [`generateRSA4096Key(name)`](#generatersa4096keyname)
+
+---
+
 ### generateRSA4096Key(name)
 
 Generates Public and Private `RSA` `4096bit` key pairs and stores them for later use under `name`+`version suffix`.
@@ -637,7 +651,7 @@ Same goes for retrieval of stored key parts except public ssh key which is in on
 |------|----------|-------------------------------------------------------------------------|
 | name | `string` | name under which all key versions will be stored (with suffixes bellow) |
 
-#### Generated versions
+#### Generated keys
 
 | suffix    | description                                                 | example                       |
 |-----------|-------------------------------------------------------------|-------------------------------|

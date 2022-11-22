@@ -66,9 +66,10 @@ services:
 
       RANDOM_ITEM: <@pickRandom(<random1>, <random2>, <random3>)>
 
-      # TODO: timezone!
-      CURRENT_DATE: "<@getDatetime(<DD.MM.YYYY>)>"
-      CURRENT_DATE_TIME: "<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>"
+      CURRENT_DATE_UTC: "<@getDatetime(<DD.MM.YYYY>)>"
+      CURRENT_DATE_GMT14: "<@getDatetime(<DD.MM.YYYY>, <Etc/GMT-14>)>"
+      CURRENT_DATE_TIME_UTC: "<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>"
+      CURRENT_DATE_TIME_PRG: "<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Europe/Prague>)>"
 
       PASSWORD_PLAIN: "<@generateRandomStringVar(<myPassword>, <30>)>"
       PASSWORD_SHA512: "<@getVar(myPassword)| sha512>"
@@ -86,12 +87,20 @@ services:
       ED25519_KEY_PRIVATE_SSH: |
         <@getVar(myED25519KeyPrivateSsh)>
 
-      RSA_KEY_PUB: |
+      RSA_2048_KEY_PUB: |
+        <@generateRSA4096Key(<myRSA2048Key>)>
+
+      RSA_2048_KEY_PUB_SSH: "<@getVar(myRSA2048KeyPublicSsh)>"
+
+      RSA_2048_KEY_PRIVATE: |
+        <@getVar(myRSA2048KeyPrivate)>
+
+      RSA_4096_KEY_PUB: |
         <@generateRSA4096Key(<myRSA4096Key>)>
 
-      RSA_KEY_PUB_SSH: "<@getVar(myRSA4096KeyPublicSsh)>"
+      RSA_4096_KEY_PUB_SSH: "<@getVar(myRSA4096KeyPublicSsh)>"
 
-      RSA_KEY_PRIVATE: |
+      RSA_4096_KEY_PRIVATE: |
         <@getVar(myRSA4096KeyPrivate)>
 
       MERCURY_RETROGRADE: "<@mercuryInRetrograde(<mercury is in retrograde>, <mercury is not in retrograde>)| title>"
