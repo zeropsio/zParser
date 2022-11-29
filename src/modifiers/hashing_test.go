@@ -105,8 +105,16 @@ func BenchmarkArgon64m_2i_2p(b *testing.B) {
 	benchmarkArgon(64*1024, 2, 2, keyLen, saltLen, b)
 }
 
+func BenchmarkArgon64m_2i_4p(b *testing.B) {
+	benchmarkArgon(64*1024, 2, 4, keyLen, saltLen, b)
+}
+
 func BenchmarkArgon64m_4i_2p(b *testing.B) {
 	benchmarkArgon(64*1024, 4, 2, keyLen, saltLen, b)
+}
+
+func BenchmarkArgon64m_4i_4p(b *testing.B) {
+	benchmarkArgon(64*1024, 4, 4, keyLen, saltLen, b)
 }
 
 func BenchmarkArgon96m_1i_1p(b *testing.B) {

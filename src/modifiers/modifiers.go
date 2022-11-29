@@ -44,8 +44,8 @@ func NewModifiers() *Modifiers {
 				// the main gist (not 100% accurate, but close enough) is complexity = memory * iterations / parallelism
 				const (
 					memory      = 64 * 1024 // KiB - main "knob" to turn for more expensive hashes
-					iterations  = 2         // if memory cant go higher, iterations should, to compensate
-					parallelism = 2         // parallelism set to 2 to better spread the CPU load, that's why iterations = 2
+					iterations  = 4         // if memory cant go higher, iterations should, to compensate
+					parallelism = 4         // parallelism set to 4 to better spread the CPU load, that's why iterations = 4
 
 					saltLen = 16 // bytes
 					keyLen  = 32

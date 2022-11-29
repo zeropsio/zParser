@@ -776,7 +776,7 @@ Returns first parameter if Mercury IS in retrograde or second if it is not.
 ### Argon2id configuration
 
 - memory: `64MiB`
-- iterations: `2`
-- parallelism: `2`
+- iterations: `4`
+- parallelism: `4`
 - saltLen: `16B`
 - keyLength: `32B`
