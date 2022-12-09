@@ -17,7 +17,7 @@ build:
     - golang182
   stage: build
   script:
-    - go build -v ./cmd/
+    - go build -v ./cmd/... ./src/...
 
 unit:
   tags:
