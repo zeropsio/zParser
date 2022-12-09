@@ -70,7 +70,6 @@ jobs:
       - name: Get dependencies
         run: |
           export GOPATH=$HOME/go
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
 
       - name: Build
         run: ${{ matrix.buildCmd }}
