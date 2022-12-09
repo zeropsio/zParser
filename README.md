@@ -51,20 +51,20 @@ Functions support 2 types of parameters
 <summary>Example</summary>
 
 ```yaml
-# This generates a random string 20 characters long and stores it into variable named myRandomString
-<@generateRandomStringVar(myRandomString, <20>)>
+  # This generates a random string 20 characters long and stores it into variable named myRandomString
+  <@generateRandomStringVar(<myRandomString>, <20>)>
 
   # This stores text `this is my custom string` into variable named myCustomString
-<@setVar(myCustomString, <this is my custom string>)>
+  <@setVar(<myCustomString>, <this is my custom string>)>
 
   # Following function call will result in one of the following values
   # my static string
   # FpKWQv6LvVmPKb2CeXTN
   # this is my custom string
-<@pickRandom(<my static string>, myRandomString, myCustomString)>
+  <@pickRandom(<my static string>, myRandomString, myCustomString)>
 
   # This will return `THIS IS MY CUSTOM STRING`
-<@getVar(myCustomString)|upper>
+  <@getVar(myCustomString)|upper>
 ```
 
 </details>
@@ -186,12 +186,12 @@ Output
 Double escaping example
 
 ```yaml
-    # Here is how following string will look like
-    - "\< \<\\\\ \\\\\\\\ \\\\\< <\\\\> \\\\\> \\\\\\\\ \\\\\> \>"
-    # - after our parsing
-    - "< <\\ \\\\ \\< \\ \\> \\\\ \\> >"
-    # - after additional yaml parsing
-    - "< <\ \\ \< \ \> \\ \> >"
+  # Here is how following string will look like
+  - "\< \<\\\\ \\\\\\\\ \\\\\< <\\\\> \\\\\> \\\\\\\\ \\\\\> \>"
+  # - after our parsing
+  - "< <\\ \\\\ \\< \\ \\> \\\\ \\> >"
+  # - after additional yaml parsing
+  - "< <\ \\ \< \ \> \\ \> >"
 ```
 
 </details>
@@ -320,9 +320,9 @@ When error occurs, binary returns a formatted error to the output
 <summary>Example</summary>
 
 ```yaml
-...
-...
-MERCURY_RETROGRADE: "<@mercuryInRetrograde(<mercury is in retrograde>, <mercury is not in retrograde>, <my third unexpected param>) | title>"
+  ...
+  ...
+  MERCURY_RETROGRADE: "<@mercuryInRetrograde(<mercury is in retrograde>, <mercury is not in retrograde>, <my third unexpected param>) | title>"
 ```
 
 ```text

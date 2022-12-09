@@ -1,0 +1,93 @@
+name: Upload build asset
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Upload build asset for ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - name: linux amd64
+            os: ubuntu-latest
+            buildCmd: env GOOS=linux GOARCH=amd64 go build -o builds/zparser-linux-amd64 ./cmd/main.go
+            file: zparser-linux-amd64
+            compress: true
+            strip: true
+            runLint: true
+            runTests: true
+
+          - name: linux 386
+            os: ubuntu-latest
+            buildCmd: env GOOS=linux GOARCH=386 go build -o builds/zparser-linux-i386 ./cmd/main.go
+            file: zparser-linux-i386
+            compress: true
+            strip: true
+            runLint: true
+            runTests: true
+
+          - name: darwin amd64
+            os: macos-latest
+            buildCmd: env GOOS=darwin GOARCH=amd64 go build -o builds/zparser-darwin-amd64 ./cmd/main.go
+            file: zparser-darwin-amd64
+            compress: false
+            strip: false
+            runLint: true
+            runTests: true
+
+          - name: darwin arm64
+            os: macos-latest
+            buildCmd: env GOOS=darwin GOARCH=arm64 go build -o builds/zparser-darwin-arm64 ./cmd/main.go
+            file: zparser-darwin-arm64
+            compress: false
+            strip: false
+            runLint: false
+            runTests: false
+
+          - name: windows amd64
+            os: ubuntu-latest
+            buildCmd: env GOOS=windows GOARCH=amd64 go build -o builds/zparser-win-x64.exe ./cmd/main.go
+            file: zparser-win-x64.exe
+            compress: false
+            strip: false
+            runLint: false
+            runTests: false
+
+    steps:
+
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v3
+        with:
+          go-version: ~1.18
+        id: go
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: |
+          export GOPATH=$HOME/go
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
+
+      - name: Build
+        run: ${{ matrix.buildCmd }}
+
+      - name: Compress binary
+        if: ${{ matrix.compress }}
+        uses: svenstaro/upx-action@v1-release
+        with:
+          file: ./builds/${{ matrix.file }}
+          strip: ${{ matrix.strip }}
+
+      - name: Upload asset clean bin
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./builds/${{ matrix.file }}
+          asset_name: ${{ matrix.file }}
+          asset_content_type: application/octet-stream
