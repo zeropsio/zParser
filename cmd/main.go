@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	_ "time/tzdata"
 
 	"git.vsh-labs.cz/zerops/zparser/src/metaError"
 	"git.vsh-labs.cz/zerops/zparser/src/parser"
