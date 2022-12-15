@@ -22,6 +22,7 @@ const stringLength = 16
 // Rest of the implementations are taken from https://stackoverflow.com/a/31832326/2228606
 //
 // The target is to have a relatively simple function to understand, which is also performant enough
+// Of course the final versions use crypto/rand, which is much slower, but it's all relative (imagine all functions used it)
 
 // Implementations
 func init() {
@@ -177,6 +178,31 @@ func RandStringFmtEncode(n int) string {
 	return hex.EncodeToString(result)[:n]
 }
 
+func RandStringFmtEncodeCryptoHex(n int) string {
+	result := make([]byte, int(math.Ceil(float64(n)/2)))
+	if _, err := cryptoRand.Read(result); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(result)[:n]
+}
+
+const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-."
+
+func RandStringFmtEncodeCrypto(length int) string {
+	result := make([]byte, length)
+	if _, err := cryptoRand.Read(result); err != nil {
+		return ""
+	}
+	for i, b := range result {
+		n := float64(b)
+		if n > 64 {
+			n = math.Mod(n, 64)
+		}
+		result[i] = chars[int(n)]
+	}
+	return string(result)
+}
+
 // Benchmark functions
 
 func BenchmarkRunes(b *testing.B) {
@@ -241,5 +267,17 @@ func BenchmarkRandStringFmt(b *testing.B) {
 func BenchmarkRandStringFmtEncode(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		RandStringFmtEncode(stringLength)
+	}
+}
+
+func BenchmarkRandStringFmtEncodeCryptoHex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		RandStringFmtEncodeCryptoHex(stringLength)
+	}
+}
+
+func BenchmarkRandStringFmtEncodeCrypto(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		RandStringFmtEncodeCrypto(stringLength)
 	}
 }

@@ -162,7 +162,7 @@ printed out.
 
 ⚠️ One caveat is usage in languages like YAML. If used inside YAML's quoted strings, all backslashes `\` MUST be escaped
 twice (`\\\\` instead of `\\`).  
-This is needed so backslash is preserved through both YPARS and YAML parsing (as both remove one `\`).
+This is needed so backslash is preserved through both zParser and YAML parsing (as both remove one `\`).
 
 <details>
 <summary>Example</summary>

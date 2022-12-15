@@ -5,7 +5,6 @@ import (
 	cryptoRand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"math"
@@ -22,6 +21,8 @@ import (
 )
 
 const maxRandStringLen = 1024
+const randStringChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-."
+const randStringMaxCharIdx = 64
 
 type function func(param ...string) (string, error)
 
@@ -95,11 +96,25 @@ func (f Functions) generateRandomString(param ...string) (string, error) {
 		return "", fmt.Errorf("provided length %d exceeds maximum length of %d characters", length, maxRandStringLen)
 	}
 
-	result := make([]byte, int(math.Ceil(float64(length)/2)))
+	// original version with hex encoding (ditched due to limited character set)
+	// result := make([]byte, int(math.Ceil(float64(length)/2)))
+	// if _, err := cryptoRand.Read(result); err != nil {
+	// 	return "", err
+	// }
+	// return hex.EncodeToString(result)[:length], nil
+
+	result := make([]byte, length)
 	if _, err := cryptoRand.Read(result); err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(result)[:length], nil
+	for i, b := range result {
+		n := float64(b)
+		if n > randStringMaxCharIdx {
+			n = math.Mod(n, randStringMaxCharIdx)
+		}
+		result[i] = randStringChars[int(n)]
+	}
+	return string(result), nil
 }
 
 // selects one random value from all provided parameters
