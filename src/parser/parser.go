@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"git.vsh-labs.cz/zerops/zparser/src/functions"
-	"git.vsh-labs.cz/zerops/zparser/src/metaError"
-	"git.vsh-labs.cz/zerops/zparser/src/modifiers"
+	"github.com/zeropsio/zParser/src/functions"
+	"github.com/zeropsio/zParser/src/metaError"
+	"github.com/zeropsio/zParser/src/modifiers"
 )
 
 const (

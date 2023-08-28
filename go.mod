@@ -1,4 +1,4 @@
-module git.vsh-labs.cz/zerops/zparser
+module github.com/zeropsio/zParser
 
 go 1.18
 
