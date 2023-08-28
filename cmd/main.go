@@ -8,8 +8,8 @@ import (
 	"os"
 	_ "time/tzdata"
 
-	"git.vsh-labs.cz/zerops/zparser/src/metaError"
-	"git.vsh-labs.cz/zerops/zparser/src/parser"
+	"github.com/zerops-dev/zParser/src/metaError"
+	"github.com/zerops-dev/zParser/src/parser"
 
 	"github.com/spf13/cobra"
 )
