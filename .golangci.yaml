@@ -9,14 +9,33 @@ output:
   format: colored-line-number
 
 linters-settings:
+  depguard:
+    rules:
+      main:
+        files:
+          - $all
+        deny:
+          - pkg: "github.com/pkg/errors"
+            desc: Should be replaced by standard lib errors package
   exhaustive:
     default-signifies-exhaustive: true
+  gci:
+    custom-order: true
+    sections:
+      - standard
+      - default
+      - prefix(github.com/zeropsio)
+  gosec:
+    excludes:
+      - G404 # Insecure random number source (rand) - we intentionally use mathRand in some places
 
 issues:
   max-same-issues: 0
 
 linters:
   enable:
+    - goimports # should be run before gci!
+    - gci
     - govet
     - ineffassign
     - staticcheck

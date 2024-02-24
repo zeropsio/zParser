@@ -8,10 +8,10 @@ import (
 	"os"
 	_ "time/tzdata"
 
+	"github.com/spf13/cobra"
+
 	"github.com/zeropsio/zParser/src/metaError"
 	"github.com/zeropsio/zParser/src/parser"
-
-	"github.com/spf13/cobra"
 )
 
 func main() {
