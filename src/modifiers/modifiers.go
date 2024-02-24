@@ -1,18 +1,17 @@
 package modifiers
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"strings"
 
-	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/zeropsio/zParser/src/util"
 )
 
 type modifyFunc func(in string) (string, error)
@@ -40,29 +39,7 @@ func NewModifiers() *Modifiers {
 				return string(hash), err
 			},
 			"argon2id": func(in string) (string, error) {
-				// standard sane parameters chosen to not overload the parser service
-				// the main gist (not 100% accurate, but close enough) is complexity = memory * iterations / parallelism
-				const (
-					memory      = 64 * 1024 // KiB - main "knob" to turn for more expensive hashes
-					iterations  = 4         // if memory cant go higher, iterations should, to compensate
-					parallelism = 4         // parallelism set to 4 to better spread the CPU load, that's why iterations = 4
-
-					saltLen = 16 // bytes
-					keyLen  = 32
-				)
-				salt := make([]byte, saltLen)
-				if _, err := rand.Read(salt); err != nil {
-					return "", err
-				}
-
-				hash := argon2.IDKey([]byte(in), salt, iterations, memory, parallelism, keyLen)
-
-				// Base64 encode the salt and hashed password.
-				b64Salt := base64.RawStdEncoding.EncodeToString(salt)
-				b64Hash := base64.RawStdEncoding.EncodeToString(hash)
-
-				// Return a string using the standard encoded hash representation.
-				return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, memory, iterations, parallelism, b64Salt, b64Hash), nil
+				return util.Argon2IDPasswordHash(in, util.DefaultArgon2idConf())
 			},
 			"upper": func(in string) (string, error) {
 				return strings.ToUpper(in), nil

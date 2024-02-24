@@ -20,9 +20,23 @@ import (
 	"github.com/zeropsio/zParser/src/util"
 )
 
-const maxRandStringLen = 1024
-const randStringChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-."
-const randStringMaxCharIdx = 64
+// constants for Random string generation
+const (
+	maxRandStringLen     = 1024
+	randStringChars      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-."
+	randStringMaxCharIdx = 64
+)
+
+// constants for SSH keys
+const (
+	typePrivateKey        = "PRIVATE KEY"
+	typePublicKey         = "PUBLIC KEY"
+	typeOpenSshPrivateKey = "OPENSSH PRIVATE KEY"
+	suffixPublic          = "Public"
+	suffixPrivate         = "Private"
+	suffixPublicSsh       = "PublicSsh"
+	suffixPrivateSsh      = "PrivateSsh"
+)
 
 type function func(param ...string) (string, error)
 
@@ -203,26 +217,26 @@ func (f Functions) generateED25519Key(param ...string) (string, error) {
 	}
 
 	privatePem := &pem.Block{
-		Type:  "PRIVATE KEY",
+		Type:  typePrivateKey,
 		Bytes: privateKeyBytes,
 	}
 	privateOpenSshPem := &pem.Block{
-		Type:  "OPENSSH PRIVATE KEY",
+		Type:  typeOpenSshPrivateKey,
 		Bytes: util.MarshalED25519PrivateKey(privateKey), // <- marshals ed25519 correctly
 	}
 	publicPem := &pem.Block{
-		Type:  "PUBLIC KEY",
+		Type:  typePublicKey,
 		Bytes: publicKeyBytes,
 	}
 	publicSshKey, _ := ssh.NewPublicKey(publicKey)
 
 	name := param[0]
-	f.values[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
-	f.values[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
-	f.values[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
-	f.values[name+"PrivateSsh"] = strings.TrimSpace(string(pem.EncodeToMemory(privateOpenSshPem)))
+	f.values[name+suffixPublic] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
+	f.values[name+suffixPrivate] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
+	f.values[name+suffixPublicSsh] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
+	f.values[name+suffixPrivateSsh] = strings.TrimSpace(string(pem.EncodeToMemory(privateOpenSshPem)))
 
-	return f.values[name+"Public"], nil
+	return f.values[name+suffixPublic], nil
 }
 
 func (f Functions) generateRSA2048Key(param ...string) (string, error) {
@@ -257,20 +271,20 @@ func (f Functions) generateRSAKey(name string, bits int) (string, error) {
 	}
 
 	privatePem := &pem.Block{
-		Type:  "PRIVATE KEY",
+		Type:  typePrivateKey,
 		Bytes: privateKeyBytes,
 	}
 	publicPem := &pem.Block{
-		Type:  "PUBLIC KEY",
+		Type:  typePublicKey,
 		Bytes: publicKeyBytes,
 	}
 	publicSshKey, _ := ssh.NewPublicKey(privateKey.Public())
 
-	f.values[name+"Public"] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
-	f.values[name+"Private"] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
-	f.values[name+"PublicSsh"] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
+	f.values[name+suffixPublic] = strings.TrimSpace(string(pem.EncodeToMemory(publicPem)))
+	f.values[name+suffixPrivate] = strings.TrimSpace(string(pem.EncodeToMemory(privatePem)))
+	f.values[name+suffixPublicSsh] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
 
-	return f.values[name+"Public"], nil
+	return f.values[name+suffixPublic], nil
 }
 
 func paramCountCheck(expected, received int) error {

@@ -1,18 +1,22 @@
+.PHONY: buildAll buildLinux buildWindows buildMac installLint fmt lint lintFix test example exampleStdout
+
+all: fmt lint test
+
 buildAll: buildLinux buildWindows buildMac
 
 buildLinux:
-	env GOOS=linux GOARCH=amd64 go build -o ./bin/zparser-linux-amd64 ./cmd/
+	env GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o ./bin/zparser-linux-amd64 ./cmd/
 	chmod +x ./bin/zparser-linux-amd64
 
 buildWindows:
-	env GOOS=windows GOARCH=amd64 go build -o ./bin/zparser-x64.exe ./cmd/
+	env GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o ./bin/zparser-x64.exe ./cmd/
 
 buildMac:
-	env GOOS=darwin GOARCH=amd64 go build -o ./bin/zparser-darwin-amd64 ./cmd/
-	env GOOS=darwin GOARCH=arm64 go build -o ./bin/zparser-darwin-arm64 ./cmd/
+	env GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o ./bin/zparser-darwin-amd64 ./cmd/
+	env GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o ./bin/zparser-darwin-arm64 ./cmd/
 
 installLint:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.56.2
 
 fmt:
 	gofmt -s -w ./src/. ./cmd/.
