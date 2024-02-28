@@ -69,7 +69,6 @@ jobs:
       - name: Get dependencies
         run: |
           export GOPATH=$HOME/go
-          make
 
       - name: Build
         run: ${{ matrix.buildCmd }}
