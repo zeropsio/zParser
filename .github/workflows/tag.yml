@@ -9,6 +9,7 @@ jobs:
     name: Upload build asset for ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: linux 386
