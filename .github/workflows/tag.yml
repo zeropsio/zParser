@@ -2,7 +2,7 @@ name: Upload build asset
 
 on:
   release:
-    types: [published]
+    types: [ published ]
 
 jobs:
   build:
@@ -11,19 +11,19 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: linux amd64
+          - name: linux 386
             os: ubuntu-latest
-            buildCmd: env GOOS=linux GOARCH=amd64 go build -o builds/zparser-linux-amd64 ./cmd/main.go
-            file: zparser-linux-amd64
+            buildCmd: make buildLinux386
+            file: zparser-linux-i386
             compress: true
             strip: true
             runLint: true
             runTests: true
 
-          - name: linux 386
+          - name: linux amd64
             os: ubuntu-latest
-            buildCmd: env GOOS=linux GOARCH=386 go build -o builds/zparser-linux-i386 ./cmd/main.go
-            file: zparser-linux-i386
+            buildCmd: make buildLinuxAmd64
+            file: zparser-linux-amd64
             compress: true
             strip: true
             runLint: true
@@ -31,7 +31,7 @@ jobs:
 
           - name: darwin amd64
             os: macos-latest
-            buildCmd: env GOOS=darwin GOARCH=amd64 go build -o builds/zparser-darwin-amd64 ./cmd/main.go
+            buildCmd: make buildMacAmd64
             file: zparser-darwin-amd64
             compress: false
             strip: false
@@ -40,7 +40,7 @@ jobs:
 
           - name: darwin arm64
             os: macos-latest
-            buildCmd: env GOOS=darwin GOARCH=arm64 go build -o builds/zparser-darwin-arm64 ./cmd/main.go
+            buildCmd: make buildMacArm64
             file: zparser-darwin-arm64
             compress: false
             strip: false
@@ -49,7 +49,7 @@ jobs:
 
           - name: windows amd64
             os: ubuntu-latest
-            buildCmd: env GOOS=windows GOARCH=amd64 go build -o builds/zparser-win-x64.exe ./cmd/main.go
+            buildCmd: make buildWindows
             file: zparser-win-x64.exe
             compress: false
             strip: false
@@ -57,36 +57,34 @@ jobs:
             runTests: false
 
     steps:
-
       - name: Set up Go 1.x
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ~1.19
         id: go
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Get dependencies
         run: |
           export GOPATH=$HOME/go
+          make
 
       - name: Build
         run: ${{ matrix.buildCmd }}
 
       - name: Compress binary
         if: ${{ matrix.compress }}
-        uses: svenstaro/upx-action@v1-release
+        uses: svenstaro/upx-action@cf8fc6f17554e2c3ac67a479a60cf71b48babc4f
         with:
-          file: ./builds/${{ matrix.file }}
+          file: ./bin/${{ matrix.file }}
           strip: ${{ matrix.strip }}
 
-      - name: Upload asset clean bin
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload to Release Action
+        uses: Shopify/upload-to-release@c77c9b3e5d288adaef98a7007bf92340ec6ce03b
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./builds/${{ matrix.file }}
-          asset_name: ${{ matrix.file }}
-          asset_content_type: application/octet-stream
+          name: ${{ matrix.file }}
+          path: ./bin/${{ matrix.file }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          content-type: application/octet-stream
