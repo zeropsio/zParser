@@ -23,9 +23,10 @@ import (
 //goland:noinspection GoErrorStringFormat
 func TestImportParser_Parse(t *testing.T) {
 	type fields struct {
-		out              *bytes.Buffer
-		in               *bytes.Reader
-		maxFunctionCount int
+		out                     *bytes.Buffer
+		in                      *bytes.Reader
+		maxFunctionCount        int
+		multiLineOutputHandling MultiLineOutputHandling
 	}
 
 	// comparison helper functions
@@ -47,11 +48,12 @@ func TestImportParser_Parse(t *testing.T) {
 	}
 
 	// helper functions
-	getFields := func(buffSize int, maxFuncCount int, input string) fields {
+	getFields := func(buffSize int, maxFuncCount int, outputHandling MultiLineOutputHandling, input string) fields {
 		return fields{
-			out:              bytes.NewBuffer(make([]byte, 0, buffSize)),
-			in:               bytes.NewReader([]byte(input)),
-			maxFunctionCount: maxFuncCount,
+			out:                     bytes.NewBuffer(make([]byte, 0, buffSize)),
+			in:                      bytes.NewReader([]byte(input)),
+			maxFunctionCount:        maxFuncCount,
+			multiLineOutputHandling: outputHandling,
 		}
 	}
 
@@ -67,40 +69,40 @@ func TestImportParser_Parse(t *testing.T) {
 		// Generic
 		{
 			name:       "context cancel",
-			fields:     getFields(1024, 200, `<@generateRandomString(<50>)|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt>`),
+			fields:     getFields(1024, 200, MultilinePreserved, `<@generateRandomString(<50>)|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt|bcrypt>`),
 			wantErr:    true,
 			ctxTimeout: time.Millisecond * 500,
 		},
 		{
 			name:        "max function count",
-			fields:      getFields(1024, 1, `<@generateRandomString(<50>) | sha256 | sha256 | sha256>`),
+			fields:      getFields(1024, 1, MultilinePreserved, `<@generateRandomString(<50>) | sha256 | sha256 | sha256>`),
 			wantMetaErr: true,
 		},
 		// Escaping
 		{
 			name:   "env variable",
-			fields: getFields(1024, 0, `${some_env_variable}`),
+			fields: getFields(1024, 0, MultilinePreserved, `${some_env_variable}`),
 			want:   wantStaticString(`${some_env_variable}`),
 		},
 		{
 			name:   "escaping simple",
-			fields: getFields(1024, 1, `\< \\ \\\\ \\<sTrInG| lower >\\ \\\\ \\ \>`),
+			fields: getFields(1024, 1, MultilinePreserved, `\< \\ \\\\ \\<sTrInG| lower >\\ \\\\ \\ \>`),
 			want:   wantStaticString(`< \ \\ \string\ \\ \ >`),
 		},
 		{
 			name:   "escaping in function param",
-			fields: getFields(1024, 1, `<@setVar(<commaString>, <this is a named string, that contains some commas, and closing braces ) and backslashes \\ what do you think?>)>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<@setVar(<commaString>, <this is a named string, that contains some commas, and closing braces ) and backslashes \\ what do you think?>)>`),
 			want:   wantStaticString(`this is a named string, that contains some commas, and closing braces ) and backslashes \ what do you think?`),
 		},
 		{
 			name:   "escaping with supported characters",
-			fields: getFields(1024, 0, `0123456789 abcdefghijklmnopqrstuvwxyz ľščťžýáíéúäôň §~!@#$%^&*()_+}{|"':?\>\<°ˇ-=[];'\\,./`),
+			fields: getFields(1024, 0, MultilinePreserved, `0123456789 abcdefghijklmnopqrstuvwxyz ľščťžýáíéúäôň §~!@#$%^&*()_+}{|"':?\>\<°ˇ-=[];'\\,./`),
 			want:   wantStaticString(`0123456789 abcdefghijklmnopqrstuvwxyz ľščťžýáíéúäôň §~!@#$%^&*()_+}{|"':?><°ˇ-=[];'\,./`),
 		},
 		// Nesting
 		{
 			name:   "nesting functions",
-			fields: getFields(1024, 3, `<@generateRandomInt(<@generateRandomInt(<-9>, <0>)>, <@generateRandomInt(<1>, <9>)>)>`),
+			fields: getFields(1024, 3, MultilinePreserved, `<@generateRandomInt(<@generateRandomInt(<-9>, <0>)>, <@generateRandomInt(<1>, <9>)>)>`),
 			want: func(s string) error {
 				num, err := strconv.ParseInt(s, 10, 64)
 				if err != nil {
@@ -114,7 +116,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "nesting functions with modifier",
-			fields: getFields(1024, 3, `<@generateRandomString(<@generateRandomInt(<10>, <50>)>) | upper>`),
+			fields: getFields(1024, 3, MultilinePreserved, `<@generateRandomString(<@generateRandomInt(<10>, <50>)>) | upper>`),
 			want: func(s string) error {
 				l := len(s)
 				if l < 10 || l > 50 {
@@ -128,38 +130,38 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "nesting with spaces",
-			fields: getFields(1024, 1, `<this is < a nested string | noop> with double spaces>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<this is < a nested string | noop> with double spaces>`),
 			want:   wantStaticString(`this is  a nested string  with double spaces`),
 		},
 		{
 			name:   "nesting without spaces",
-			fields: getFields(1024, 1, `<this is <a nested string| noop> with single spaces>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<this is <a nested string| noop> with single spaces>`),
 			want:   wantStaticString(`this is a nested string with single spaces`),
 		},
 		{
 			name:   "nesting functions and strings with modifiers",
-			fields: getFields(1024, 3, `<@setVar(<name>, <this is <a nested string| title> with a modifier>)>`),
+			fields: getFields(1024, 3, MultilinePreserved, `<@setVar(<name>, <this is <a nested string| title> with a modifier>)>`),
 			want:   wantStaticString(`this is A Nested String with a modifier`),
 		},
 		{
 			name:   "allowing env inside function param",
-			fields: getFields(1024, 1, `<@setVar(<name>, <hello ${user_name} how are you>)>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<@setVar(<name>, <hello ${user_name} how are you>)>`),
 			want:   wantStaticString(`hello ${user_name} how are you`),
 		},
 		{
 			name:   "env with random suffix",
-			fields: getFields(1024, 1, `${user_name<@generateRandomInt(<10>, <99>)>}`),
+			fields: getFields(1024, 1, MultilinePreserved, `${user_name<@generateRandomInt(<10>, <99>)>}`),
 			want:   wantStaticLen(14),
 		},
 		// Functions
 		{
 			name:   "generate random string",
-			fields: getFields(1024, 1, `<@generateRandomString(<50>)>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<@generateRandomString(<50>)>`),
 			want:   wantStaticLen(50),
 		},
 		{
 			name:   "generate random int",
-			fields: getFields(1024, 1, `<@generateRandomInt(<10>, <99>)>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<@generateRandomInt(<10>, <99>)>`),
 			want: func(s string) error {
 				num, err := strconv.ParseInt(s, 10, 64)
 				if err != nil {
@@ -173,12 +175,12 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:        "date time invalid timezone",
-			fields:      getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Totally/Invalid/Zone>)>`),
+			fields:      getFields(1024, 1, MultilinePreserved, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Totally/Invalid/Zone>)>`),
 			wantMetaErr: true,
 		},
 		{
 			name:   "date time UTC",
-			fields: getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>`),
 			want: func(s string) error {
 				const layout = "02.01.2006 15:04:05"
 				t, err := time.ParseInLocation(layout, s, time.UTC)
@@ -198,7 +200,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "date time Europe/Prague",
-			fields: getFields(1024, 1, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Europe/Prague>)>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Europe/Prague>)>`),
 			want: func(s string) error {
 				const layout = "02.01.2006 15:04:05"
 				loc, err := time.LoadLocation("Europe/Prague")
@@ -222,7 +224,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "mercury in retrograde",
-			fields: getFields(1024, 1, `<@mercuryInRetrograde(<Mercury is in retrograde>, <Mercury is not in retrograde>)>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<@mercuryInRetrograde(<Mercury is in retrograde>, <Mercury is not in retrograde>)>`),
 			want: func(s string) error {
 				yes, err := util.MercuryInRetrograde()
 				if err != nil {
@@ -239,29 +241,93 @@ func TestImportParser_Parse(t *testing.T) {
 			},
 		},
 		{
-			name:   "generate random string vat",
-			fields: getFields(1024, 1, `<@generateRandomStringVar(<name>, <50>)>`),
+			name:   "generate random string var",
+			fields: getFields(1024, 1, MultilinePreserved, `<@generateRandomStringVar(<name>, <50>)>`),
 			want:   wantStaticLen(50),
 		},
 		{
 			name:   "get random string var",
-			fields: getFields(1024, 2, `<@generateRandomStringVar(<name>, <50>)>|<@getVar(name)>`),
+			fields: getFields(1024, 2, MultilinePreserved, `<@generateRandomStringVar(<name>, <50>)>|<@getVar(name)>`),
 			want:   wantStaticLen(101),
 		},
 		{
 			name:   "custom var",
-			fields: getFields(1024, 1, `<@setVar(<name>, <my completely custom string>)>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<@setVar(<name>, <my completely custom string>)>`),
 			want:   wantStaticString(`my completely custom string`),
 		},
 		{
 			name:   "get custom var",
-			fields: getFields(1024, 2, `<@setVar(<name>, <my completely custom string>)>|<@getVar(name)>`),
+			fields: getFields(1024, 2, MultilinePreserved, `<@setVar(<name>, <my completely custom string>)>|<@getVar(name)>`),
 			want:   wantStaticString(`my completely custom string|my completely custom string`),
+		},
+		{
+			name:   "multi line output preserve",
+			fields: getFields(1024, 1, MultilinePreserved, "\t\t<@generateED25519Key(<key>)>"),
+			want: func(s string) error {
+				parts := strings.Split(s, "\n")
+				if len(parts) <= 1 {
+					return fmt.Errorf("expected 3 lines, found %d, got = %v", len(parts), s)
+				}
+				for n, line := range parts {
+					if n == 0 && !strings.HasPrefix(line, "\t\t") {
+						return fmt.Errorf("expected first line to be prefixed with `\\t\\t`, got = %v", line)
+					}
+					if n > 0 && strings.HasPrefix(line, "\t\t") {
+						return fmt.Errorf("expected other lines to NOT be prefixed with `\\t\\t`, got = %v", line)
+					}
+				}
+				return nil
+			},
+		},
+		{
+			name:   "multi line output preserve with indent",
+			fields: getFields(1024, 1, MultilineWithIndent, "\t\t<@generateED25519Key(<key>)>"),
+			want: func(s string) error {
+				parts := strings.Split(s, "\n")
+				if len(parts) <= 1 {
+					return fmt.Errorf("expected 3 lines, found %d, got = %v", len(parts), s)
+				}
+				for _, line := range parts {
+					if !strings.HasPrefix(line, "\t\t") {
+						return fmt.Errorf("expected every line to be prefixed with `\\t\\t`, got = %v", line)
+					}
+				}
+				return nil
+			},
+		},
+		{
+			name:   "multi line output preserve with indent - nested",
+			fields: getFields(1024, 1, MultilineWithIndent, "\t\t<Text\n\t\t<@generateED25519Key(<key>)>\n\t\tText>"),
+			want: func(s string) error {
+				parts := strings.Split(s, "\n")
+				if len(parts) != 5 {
+					return fmt.Errorf("expected 5 lines, found %d, got = %v", len(parts), s)
+				}
+				for _, line := range parts {
+					if !strings.HasPrefix(line, "\t\t") {
+						return fmt.Errorf("expected every line to be prefixed with `\\t\\t`, got = %v", line)
+					}
+				}
+				return nil
+			},
+		},
+		{
+			name:   "multi line output squashed",
+			fields: getFields(1024, 1, MultilineToOneLine, "\t\t<@generateED25519Key(<key>)>"),
+			want: func(s string) error {
+				if newLines := strings.Count(s, "\n"); newLines > 0 {
+					return fmt.Errorf("expected 1 line, found %d, got = %v", newLines, s)
+				}
+				if newLines := strings.Count(s, "\\n"); newLines != 2 {
+					return fmt.Errorf("expected 3 lines squashed to one, found %d, got = %v", newLines, s)
+				}
+				return nil
+			},
 		},
 		{
 			// tests complete generation of public, public ssh, private and private ssh keys
 			name:   "get ED25519 private key",
-			fields: getFields(1024, 4, "<@generateED25519Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPrivateSsh)>|<@getVar(keyPublicSsh)>"),
+			fields: getFields(1024, 4, MultilinePreserved, "<@generateED25519Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPrivateSsh)>|<@getVar(keyPublicSsh)>"),
 			want: func(s string) error {
 				parts := strings.Split(s, "|")
 				if len(parts) != 4 {
@@ -306,7 +372,7 @@ func TestImportParser_Parse(t *testing.T) {
 		{
 			// tests complete generation of public, public ssh and private keys
 			name:   "generate RSA2048 key",
-			fields: getFields(1024, 4, "<@generateRSA2048Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPublicSsh)>"),
+			fields: getFields(1024, 4, MultilinePreserved, "<@generateRSA2048Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPublicSsh)>"),
 			want: func(s string) error {
 				parts := strings.Split(s, "|")
 				if len(parts) != 3 {
@@ -319,7 +385,7 @@ func TestImportParser_Parse(t *testing.T) {
 		{
 			// tests complete generation of public, public ssh and private keys
 			name:   "generate RSA4096 key",
-			fields: getFields(1024, 4, "<@generateRSA4096Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPublicSsh)>"),
+			fields: getFields(1024, 4, MultilinePreserved, "<@generateRSA4096Key(<key>)>|<@getVar(keyPrivate)>|<@getVar(keyPublicSsh)>"),
 			want: func(s string) error {
 				parts := strings.Split(s, "|")
 				if len(parts) != 3 {
@@ -332,37 +398,37 @@ func TestImportParser_Parse(t *testing.T) {
 		// Modifiers
 		{
 			name:   "modifier title",
-			fields: getFields(1024, 1, `<my string in title case| title>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<my string in title case| title>`),
 			want:   wantStaticString(`My String In Title Case`),
 		},
 		{
 			name:   "modifier upper",
-			fields: getFields(1024, 1, `<mY StriNg iN UppER caSe| upper>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<mY StriNg iN UppER caSe| upper>`),
 			want:   wantStaticString(`MY STRING IN UPPER CASE`),
 		},
 		{
 			name:   "modifier lower",
-			fields: getFields(1024, 1, `<My sTRing In lOWer cAsE| lower>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<My sTRing In lOWer cAsE| lower>`),
 			want:   wantStaticString(`my string in lower case`),
 		},
 		{
 			name:   "modifier noop",
-			fields: getFields(1024, 1, `<My sTRing wIthoUt { any } ChangEs !@!| noop>`),
+			fields: getFields(1024, 1, MultilinePreserved, `<My sTRing wIthoUt { any } ChangEs !@!| noop>`),
 			want:   wantStaticString(`My sTRing wIthoUt { any } ChangEs !@!`),
 		},
 		{
 			name:   "modifier sha256",
-			fields: getFields(1024, 2, `<this string should be hashed using sha256 algorithm| sha256>`),
+			fields: getFields(1024, 2, MultilinePreserved, `<this string should be hashed using sha256 algorithm| sha256>`),
 			want:   wantStaticString(`28aa52395ab73ec770e95ebe006d6e560e15effb227f2c3ebf743259ebd62bb8`),
 		},
 		{
 			name:   "modifier sha512",
-			fields: getFields(1024, 2, `<this string should be hashed using sha512 algorithm| sha512>`),
+			fields: getFields(1024, 2, MultilinePreserved, `<this string should be hashed using sha512 algorithm| sha512>`),
 			want:   wantStaticString(`3ff0c00ebf7d9b69efefcb38ccf98ee46927e16e01200dcc8bc9071dbe8089360d779206928447df5a3004e66cbc118b3d7e731dd15bfde7ccbac9530678ec99`),
 		},
 		{
 			name:   "modifier bcrypt",
-			fields: getFields(1024, 2, `<this string should be hashed using bcrypt| bcrypt>`),
+			fields: getFields(1024, 2, MultilinePreserved, `<this string should be hashed using bcrypt| bcrypt>`),
 			want: func(s string) error {
 				if err := bcrypt.CompareHashAndPassword([]byte(s), []byte("this string should be hashed using bcrypt")); err != nil {
 					return fmt.Errorf("received bcrypt hash is not the hash of the given string, got = %v", s)
@@ -372,7 +438,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "modifier argon2id",
-			fields: getFields(1024, 2, `<this string should be hashed using argon2id| argon2id>`),
+			fields: getFields(1024, 2, MultilinePreserved, `<this string should be hashed using argon2id| argon2id>`),
 			want: func(s string) error {
 				if err := util.Argon2IDPasswordVerify(s, "this string should be hashed using argon2id"); err != nil {
 					return fmt.Errorf("received argon2id hash is not the hash of the given string, got = %v", s)
@@ -382,7 +448,7 @@ func TestImportParser_Parse(t *testing.T) {
 		},
 		{
 			name:   "modifiers title and sha256",
-			fields: getFields(1024, 2, `<my string in title case| title | sha256>`),
+			fields: getFields(1024, 2, MultilinePreserved, `<my string in title case| title | sha256>`),
 			want:   wantStaticString(`bb8973c3a99ec24dff29210d336fbdce5568b853acd3c0ca68f3cc9e6fb86659`),
 		},
 	}
@@ -395,7 +461,7 @@ func TestImportParser_Parse(t *testing.T) {
 				defer ctxCancel()
 			}
 
-			p := NewParser(tt.fields.in, tt.fields.out, tt.fields.maxFunctionCount)
+			p := NewParser(tt.fields.in, tt.fields.out, WithMaxFunctionCount(tt.fields.maxFunctionCount), WithMultilineOutputHandling(tt.fields.multiLineOutputHandling))
 			err := p.Parse(ctx)
 
 			if err == nil && (tt.wantErr || tt.wantMetaErr) {
