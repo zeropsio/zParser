@@ -30,12 +30,15 @@ type Parser struct {
 	out *bufio.Writer
 	in  *bufio.Reader
 
+	// Limits maximum amount of function calls (by default set to -1 which means unlimited)
 	maxFunctionCount int
-	functionCount    int
+	// Sets how multiline output of functions will be formatted, defaults to no modifications
+	multiLineOutputHandling MultiLineOutputHandling
 
-	currentLine int
-	currentChar int
-	currentItem *parserItem
+	functionCount int
+	currentLine   int
+	currentChar   int
+	currentItem   *parserItem
 
 	indentChar  rune
 	indentCount int
@@ -46,13 +49,14 @@ type Parser struct {
 	valueStore map[string]string
 }
 
-func NewParser(in io.Reader, out io.Writer, maxFuncCount int) *Parser {
+func NewParser(in io.Reader, out io.Writer, options ...OptionFunc) *Parser {
 	values := make(map[string]string, 200)
-	return &Parser{
+	p := &Parser{
 		in:  bufio.NewReader(in),
 		out: bufio.NewWriter(out),
 
-		maxFunctionCount: maxFuncCount,
+		maxFunctionCount:        -1,
+		multiLineOutputHandling: MultilinePreserved,
 
 		functions: functions.NewFunctions(values),
 		mutations: modifiers.NewModifiers(),
@@ -60,6 +64,10 @@ func NewParser(in io.Reader, out io.Writer, maxFuncCount int) *Parser {
 		currentLine: 1,
 		valueStore:  values,
 	}
+	for _, option := range options {
+		option(p)
+	}
+	return p
 }
 
 func (p *Parser) Parse(ctx context.Context) error {
@@ -283,7 +291,6 @@ func (p *Parser) processCurrentItem() error {
 		return nil
 	}
 
-	addIndent := false // whether indentation should be added to the output - used only for functions (they may generate multiline output)
 	out := ""
 	switch p.currentItem.t {
 	case itemTypeFunction:
@@ -300,7 +307,6 @@ func (p *Parser) processCurrentItem() error {
 		if err != nil {
 			return err
 		}
-		addIndent = true
 	case itemTypeString:
 		out = p.currentItem.name
 	default:
@@ -318,6 +324,11 @@ func (p *Parser) processCurrentItem() error {
 		}
 	}
 
+	// handle newlines for function output (do not touch user entered text)
+	if p.currentItem.t == itemTypeFunction {
+		out = p.handleMultiline(out)
+	}
+
 	// if parent exists, write output to the parameters and move back to processing of the parent
 	if p.currentItem.parent != nil {
 		p.currentItem = p.currentItem.parent
@@ -331,11 +342,6 @@ func (p *Parser) processCurrentItem() error {
 		return nil
 	}
 
-	// indent every newline to same level as the line with function definition
-	if addIndent && p.currentItem.indentChar != 0 {
-		out = strings.ReplaceAll(out, "\n", "\n"+strings.Repeat(string(p.currentItem.indentChar), p.currentItem.indentCount))
-	}
-
 	p.currentItem = nil
 
 	if _, err := p.out.WriteString(out); err != nil {
@@ -344,10 +350,28 @@ func (p *Parser) processCurrentItem() error {
 	return nil
 }
 
+func (p *Parser) handleMultiline(in string) string {
+	switch p.multiLineOutputHandling {
+	case MultilinePreserved:
+		// do nothing
+	case MultilineToOneLine:
+		// collapse all newlines into single line with newlines escaped
+		return strings.ReplaceAll(in, "\n", "\\n")
+	case MultilineWithIndent:
+		// nothing to indent, function call was first thing on the line
+		if p.currentItem.indentChar == 0 {
+			return in
+		}
+		// indent every newline to same level as the line with function definition
+		return strings.ReplaceAll(in, "\n", "\n"+strings.Repeat(string(p.currentItem.indentChar), p.currentItem.indentCount))
+	}
+	return in
+}
+
 // increments functionCount counter and returns error if it exceeds maxFunctionCount
 func (p *Parser) incrementFunctionCount() error {
 	p.functionCount++
-	if p.functionCount > p.maxFunctionCount {
+	if p.maxFunctionCount >= 0 && p.functionCount > p.maxFunctionCount {
 		return fmt.Errorf("max amount of function calls [%d] exceeded", p.maxFunctionCount)
 	}
 	return nil

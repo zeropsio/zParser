@@ -20,6 +20,17 @@ services:
          STRING
         >
 
+      MULTI_LINE_STRING_WITH_MULTI_LINE_FUNCTION: |
+        <ESC
+         APED
+         MULTI L
+         -----BEGIN PUBLIC KEY-----
+         MCOWBQYDK2VWAYEARZCBQVFEAQGU/6OETYA5ARD0Y4ZY8AMB48VMKQ4+RAE=
+         -----END PUBLIC KEY-----
+         INE
+         STRING
+        >
+
       ONE_FUNCTION: "1XHGCl1fcH0hu1W-f-Cn"
       TWO_FUNCTIONS: "-68_yl_iKcO9--KGU0301812"
       NESTED_FUNCTIONS: "A6MrX2352Og0t81SucTivHHRiRATtFibn7BVOAmVOHEfn6xN"
