@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"math"
 	"math/big"
 	mathRand "math/rand"
 	"strconv"
@@ -20,12 +19,7 @@ import (
 	"github.com/zeropsio/zParser/src/util"
 )
 
-// constants for Random string generation
-const (
-	maxRandStringLen     = 1024
-	randStringChars      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-."
-	randStringMaxCharIdx = 64
-)
+const maxRandBytesLen = 1024
 
 // constants for SSH keys
 const (
@@ -51,6 +45,7 @@ func NewFunctions(valueStore map[string]string) *Functions {
 	}
 	f.functions = map[string]function{
 		"generateRandomInt":       f.generateRandomInt,
+		"generateRandomBytes":     f.generateRandomBytes,
 		"generateRandomString":    f.generateRandomString,
 		"generateRandomStringVar": f.generateRandomStringVar,
 		"pickRandom":              f.pickRandom,
@@ -97,8 +92,8 @@ func (f Functions) generateRandomInt(param ...string) (string, error) {
 	return strconv.FormatInt(n.Int64()+min, 10), nil
 }
 
-// generates cryptographically secure random string of specified length given its <= maxRandStringLen
-func (f Functions) generateRandomString(param ...string) (string, error) {
+// generates specified amount of cryptographically secure random bytes, if amount is <= maxRandBytesLen
+func (f Functions) generateRandomBytes(param ...string) (string, error) {
 	if err := paramCountCheck(1, len(param)); err != nil {
 		return "", err
 	}
@@ -106,29 +101,24 @@ func (f Functions) generateRandomString(param ...string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if length > maxRandStringLen {
-		return "", fmt.Errorf("provided length %d exceeds maximum length of %d characters", length, maxRandStringLen)
+	if length > maxRandBytesLen {
+		return "", fmt.Errorf("provided length %d exceeds maximum length of %d bytes", length, maxRandBytesLen)
 	}
-
-	// original version with hex encoding (ditched due to limited character set)
-	// result := make([]byte, int(math.Ceil(float64(length)/2)))
-	// if _, err := cryptoRand.Read(result); err != nil {
-	// 	return "", err
-	// }
-	// return hex.EncodeToString(result)[:length], nil
 
 	result := make([]byte, length)
 	if _, err := cryptoRand.Read(result); err != nil {
 		return "", err
 	}
-	for i, b := range result {
-		n := float64(b)
-		if n > randStringMaxCharIdx {
-			n = math.Mod(n, randStringMaxCharIdx)
-		}
-		result[i] = randStringChars[int(n)]
-	}
 	return string(result), nil
+}
+
+// alias of generateRandomBytes combined with toString modifier
+func (f Functions) generateRandomString(param ...string) (string, error) {
+	bytes, err := f.generateRandomBytes(param...)
+	if err != nil {
+		return "", err
+	}
+	return util.BytesToString([]byte(bytes)), nil
 }
 
 // selects one random value from all provided parameters

@@ -85,6 +85,13 @@ services:
       PASSWORD_BCRYPT: "<@getVar(myPassword)| bcrypt>"
       PASSWORD_ARGON2: "<@getVar(myPassword)| argon2id>"
 
+      RANDOM_HEX: <@generateRandomBytes(<20>) | toHex>
+      RANDOM_STRING: <@generateRandomBytes(<20>) | toString>
+
+      RANDOM_BYTES: <@setVar(<randomBytes>, <@generateRandomBytes(<10>)>)>
+      RANDOM_BYTES_HEX: <@getVar(randomBytes) | toHex>
+      RANDOM_BYTES_STRING: <@getVar(randomBytes) | toString>
+
       ED25519_KEY_PUB: |
         <@generateED25519Key(<myED25519Key>)>
 

@@ -346,6 +346,7 @@ positionNear: e>
 | name                    | description                                                                      | example                                        |
 |-------------------------|----------------------------------------------------------------------------------|------------------------------------------------|
 | generateRandomString    | generates random string in requested length                                      | `<@generateRandomString(<50>)>`                |
+| generateRandomBytes     | generates requested amount of cryptographically random bytes                     | `<@generateRandomBytes(<50>)>`                 |
 | generateRandomInt       | generates random in int range [min, max]                                         | `<@generateRandomInt(<-999>, <999>)>`          |
 | pickRandom              | selects one of the provided parameters at random                                 | `<@pickRandom(<one>, <two>, <three>, <four>)>` |
 | generateRandomStringVar | generates random string and stores it for later use                              | `<@generateRandomStringVar(<myName>, <50>)>`   |
@@ -359,10 +360,13 @@ positionNear: e>
 
 ---
 
-### generateRandomString(length)
+### `generateRandomString(length)`
 
-Generates random string in requested length
+Generates random string, comprised of `[a-zA-Z0-9_-.]` character set, in requested length
 <details>
+
+#### Info
+It is preferred to use `generateRandomBytes` with `toString` modifier: `<@generateRandomBytes(length) | toString>`.
 
 #### Parameters
 
@@ -376,6 +380,28 @@ Generates random string in requested length
 |---------------------------------|----------------------|
 | `<@generateRandomString(<20>)>` | bc84df942e8290438c21 |
 | `<@generateRandomString(<10>)>` | 94a2f484de           |
+
+</details>
+
+---
+
+### `generateRandomBytes(length)`
+
+Generates requested amount of cryptographically random bytes
+<details>
+
+#### Parameters
+
+| name   | type  | description                                      |
+|--------|-------|--------------------------------------------------|
+| length | `int` | required byte amount (max. allowed value `1024`) |
+
+#### Example
+
+| input                           | output             |
+|---------------------------------|--------------------|
+| `<@generateRandomBytes(<20>)>`  | �m�r�Fe�Gx�9������ |
+| `<@generateRandomString(<10>)>` | v�A��b�A           |
 
 </details>
 
@@ -557,7 +583,7 @@ Returns current date and time in specified format.
 
 ---
 
-### generateED25519Key(name)
+### `generateED25519Key(name)`
 
 Generates Public and Private `ED25519` key pairs and stores them for later use under `name`+`version suffix`.
 
@@ -626,7 +652,7 @@ Output
 
 ---
 
-### generateRSA2048Key(name)
+### `generateRSA2048Key(name)`
 
 Generates Public and Private `RSA` `2048bit` key pairs and stores them for later use under `name`+`version suffix`.
 
@@ -637,7 +663,7 @@ For details see [`generateRSA4096Key(name)`](#generatersa4096keyname)
 
 ---
 
-### generateRSA4096Key(name)
+### `generateRSA4096Key(name)`
 
 Generates Public and Private `RSA` `4096bit` key pairs and stores them for later use under `name`+`version suffix`.
 
@@ -750,6 +776,8 @@ Returns first parameter if Mercury IS in retrograde or second if it is not.
 | sha512   | hashes string using sha512 algorithm                                    |
 | bcrypt   | hashes string using bcrypt algorithm                                    |
 | argon2id | hashes string using argon2id algorithm                                  |
+| toHex    | encodes provided string/bytes into hexadecimal                          |
+| toString | encodes provided string/bytes into string comprised of `[a-zA-Z0-9_-.]` |
 | upper    | maps all unicode letters to their upper case                            |
 | lower    | maps all unicode letters to their lower case                            |
 | title    | maps all words to title case (first letter upper case, rest lower case) |
@@ -757,17 +785,19 @@ Returns first parameter if Mercury IS in retrograde or second if it is not.
 
 ### Examples
 
-| input                                                    | output                                                                                                                           |
-|----------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| `<@generateRandomStringVar(<myPassword>, <30>)>`         | 7a14c8e74bc98a0d74253b1d1a4ef6                                                                                                   |
-| <code><@getVar(myPassword) &#124; sha256></code>         | 081b91d6dff5036229a92e2442fb65d7c8124571d4e70a2ac4729aeb86957407                                                                 |
-| <code><@getVar(myPassword) &#124; sha512></code>         | 89c05547de0aa4926512a958f95ab8bf4096ceec63ad5aad4266890bfa059e0cc98917c54276ba4cd61f1dde4c8efda948fc967885c9dd50558ed939722ca10c |
-| <code><@getVar(myPassword) &#124; bcrypt></code>         | $2a$10$CxKZX0yIxdc7ts6eI5aBu.g.heAsFcePdMDEpnlViTlo3vGc//PXe                                                                     |
-| <code><@getVar(myPassword) &#124; argon2id></code>       | $argon2id$v=19$m=98304,t=1,p=3$uWBpmoUT3sfckXHyRF9hlg$8bGtNffuHxaRIgN99zCmJeGEYJF5BY2J9TwzqmezP28                                |
-| <code><sTATic StrINg wiTH a mOdifIER&#124; upper></code> | STATIC STRING WITH A MODIFIER                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER&#124; lower></code> | static string with a modifier                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER&#124; title></code> | Static String With A Modifier                                                                                                    |
-| <code><sTATic StrINg wiTH a mOdifIER&#124; noop></code>  | sTATic StrINg wiTH a mOdifIER                                                                                                    |
+| input                                                     | output                                                                                                                           |
+|-----------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| `<@generateRandomStringVar(<myPassword>, <30>)>`          | 7a14c8e74bc98a0d74253b1d1a4ef6                                                                                                   |
+| <code><@getVar(myPassword) &#124; sha256></code>          | 081b91d6dff5036229a92e2442fb65d7c8124571d4e70a2ac4729aeb86957407                                                                 |
+| <code><@getVar(myPassword) &#124; sha512></code>          | 89c05547de0aa4926512a958f95ab8bf4096ceec63ad5aad4266890bfa059e0cc98917c54276ba4cd61f1dde4c8efda948fc967885c9dd50558ed939722ca10c |
+| <code><@getVar(myPassword) &#124; bcrypt></code>          | $2a$10$CxKZX0yIxdc7ts6eI5aBu.g.heAsFcePdMDEpnlViTlo3vGc//PXe                                                                     |
+| <code><@getVar(myPassword) &#124; argon2id></code>        | $argon2id$v=19$m=98304,t=1,p=3$uWBpmoUT3sfckXHyRF9hlg$8bGtNffuHxaRIgN99zCmJeGEYJF5BY2J9TwzqmezP28                                |
+| <code><@generateRandomBytes(<20>) &#124; toHex></code>    | 830e5694b3844f47f805c91956bc80ba728ca804                                                                                         |
+| <code><@generateRandomBytes(<20>) &#124; toString></code> | Yf_mG3hj9BGWL3GisrPN                                                                                                             |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; upper></code>  | STATIC STRING WITH A MODIFIER                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; lower></code>  | static string with a modifier                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; title></code>  | Static String With A Modifier                                                                                                    |
+| <code><sTATic StrINg wiTH a mOdifIER&#124; noop></code>   | sTATic StrINg wiTH a mOdifIER                                                                                                    |
 
 ### Bcrypt configuration
 
