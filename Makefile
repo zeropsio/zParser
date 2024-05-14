@@ -23,7 +23,7 @@ buildLinux: buildLinuxAmd64 buildLinux386
 buildMac: buildMacAmd64 buildMacArm64
 
 installLint:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.56.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.58.1
 
 fmt:
 	gofmt -s -w ./src/. ./cmd/.
@@ -38,7 +38,7 @@ test:
 	go test -v ./src/... ./cmd/...
 
 exampleStdout:
-	./bin/zparser-linux-amd64 ./example.yml
+	go run ./cmd/main.go ./example.yml
 
 example:
-	./bin/zparser-linux-amd64 ./example.yml -f example.parsed.yml
+	go run ./cmd/main.go ./example.yml -f example.parsed.yml

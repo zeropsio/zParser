@@ -41,6 +41,12 @@ func NewModifiers() *Modifiers {
 			"argon2id": func(in string) (string, error) {
 				return util.Argon2IDPasswordHash(in, util.DefaultArgon2idConf())
 			},
+			"toHex": func(in string) (string, error) {
+				return hex.EncodeToString([]byte(in)), nil
+			},
+			"toString": func(in string) (string, error) {
+				return util.BytesToString([]byte(in)), nil
+			},
 			"upper": func(in string) (string, error) {
 				return strings.ToUpper(in), nil
 			},
