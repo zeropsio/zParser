@@ -24,11 +24,6 @@ const stringLength = 16
 // The target is to have a relatively simple function to understand, which is also performant enough
 // Of course the final versions use crypto/rand, which is much slower, but it's all relative (imagine all functions used it)
 
-// Implementations
-func init() {
-	mathRand.Seed(time.Now().UnixNano())
-}
-
 //nolint:gochecknoglobals
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
@@ -164,6 +159,7 @@ func RandStringRange(n int) string {
 
 func RandStringFmt(n int) string {
 	result := make([]byte, int(math.Ceil(float64(n)/2)))
+	//nolint:staticcheck // ignore deprecation note, we wanted to know the performance difference
 	if _, err := mathRand.Read(result); err != nil {
 		return ""
 	}
@@ -172,6 +168,7 @@ func RandStringFmt(n int) string {
 
 func RandStringFmtEncode(n int) string {
 	result := make([]byte, int(math.Ceil(float64(n)/2)))
+	//nolint:staticcheck // ignore deprecation note, we wanted to know the performance difference
 	if _, err := mathRand.Read(result); err != nil {
 		return ""
 	}

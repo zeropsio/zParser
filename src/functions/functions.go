@@ -11,12 +11,11 @@ import (
 	mathRand "math/rand"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/bykof/gostradamus"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/zeropsio/zParser/src/util"
+	"github.com/zeropsio/zParser/v2/src/util"
 )
 
 const maxRandBytesLen = 1024
@@ -126,7 +125,6 @@ func (f Functions) pickRandom(param ...string) (string, error) {
 	if len(param) == 0 {
 		return "", fmt.Errorf("invalid parameter count, at least 1 expected %d provided", len(param))
 	}
-	mathRand.Seed(time.Now().UnixNano())
 	return param[mathRand.Intn(len(param))], nil
 }
 

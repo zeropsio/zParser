@@ -16,8 +16,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/zeropsio/zParser/src/metaError"
-	"github.com/zeropsio/zParser/src/util"
+	"github.com/zeropsio/zParser/v2/src/metaError"
+	"github.com/zeropsio/zParser/v2/src/util"
 )
 
 //goland:noinspection GoErrorStringFormat

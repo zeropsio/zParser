@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/zeropsio/zParser/src/metaError"
-	"github.com/zeropsio/zParser/src/parser"
+	"github.com/zeropsio/zParser/v2/src/metaError"
+	"github.com/zeropsio/zParser/v2/src/parser"
 )
 
 func main() {

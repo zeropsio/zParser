@@ -212,7 +212,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/zeropsio/zParser/src/parser"
+	"github.com/zeropsio/zParser/v2/src/parser"
 )
 
 func main() {
