@@ -11,7 +11,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/zeropsio/zParser/src/util"
+	"github.com/zeropsio/zParser/v2/src/util"
 )
 
 type modifyFunc func(in string) (string, error)
