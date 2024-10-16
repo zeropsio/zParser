@@ -21,12 +21,6 @@ jobs:
             runLint: true
             runTests: true
 
-          - name: linux 386
-            os: ubuntu-latest
-            osEnv: GOOS=linux GOARCH=386
-            runLint: true
-            runTests: true
-
           - name: darwin amd64
             os: macos-latest
             osEnv: GOOS=darwin GOARCH=amd64
@@ -58,7 +52,7 @@ jobs:
     - name: Get dependencies
       run: |
         export GOPATH=$HOME/go
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.56.2
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
 
     - name: Build
       run: env ${{ matrix.osEnv }} go build -v ./cmd/... ./src/...

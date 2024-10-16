@@ -92,6 +92,9 @@ services:
       RANDOM_BYTES_HEX: <@getVar(randomBytes) | toHex>
       RANDOM_BYTES_STRING: <@getVar(randomBytes) | toString>
 
+      JWT_KEY_SECRET: <@generateRandomStringVar(<jwtKeySecret>, <32>)>
+      JWT_KEY: <@generateJWT(<@getVar(jwtKeySecret)>, <{"role":"test","exp":1798761600}>)>
+
       ED25519_KEY_PUB: |
         <@generateED25519Key(<myED25519Key>)>
 

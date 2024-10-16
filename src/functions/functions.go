@@ -5,14 +5,17 @@ import (
 	cryptoRand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"math/big"
 	mathRand "math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bykof/gostradamus"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/zeropsio/zParser/v2/src/util"
@@ -55,6 +58,7 @@ func NewFunctions(valueStore map[string]string) *Functions {
 		"generateED25519Key":      f.generateED25519Key,
 		"generateRSA2048Key":      f.generateRSA2048Key,
 		"generateRSA4096Key":      f.generateRSA4096Key,
+		"generateJWT":             f.generateJWT,
 	}
 	return f
 }
@@ -273,6 +277,28 @@ func (f Functions) generateRSAKey(name string, bits int) (string, error) {
 	f.values[name+suffixPublicSsh] = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicSshKey)))
 
 	return f.values[name+suffixPublic], nil
+}
+
+// TODO(ms): Add support for other signing methods than fixed HS256
+func (f Functions) generateJWT(param ...string) (string, error) {
+	if len(param) < 2 {
+		return "", fmt.Errorf("invalid parameter count, at least 2 expected %d provided", len(param))
+	}
+
+	var payload = jwt.MapClaims{
+		"iss": "zerops",
+		"iat": time.Now().Unix(),
+	}
+	if err := json.NewDecoder(strings.NewReader(param[1])).Decode(&payload); err != nil {
+		return "", fmt.Errorf("failed to decode provided JSON payload: %w", err)
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
+	tokenString, err := token.SignedString([]byte(param[0]))
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+	return tokenString, nil
 }
 
 func paramCountCheck(expected, received int) error {

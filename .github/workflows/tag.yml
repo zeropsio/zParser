@@ -12,15 +12,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: linux 386
-            os: ubuntu-latest
-            buildCmd: make buildLinux386
-            file: zparser-linux-i386
-            compress: true
-            strip: true
-            runLint: true
-            runTests: true
-
           - name: linux amd64
             os: ubuntu-latest
             buildCmd: make buildLinuxAmd64
