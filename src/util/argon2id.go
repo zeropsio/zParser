@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"golang.org/x/crypto/argon2"
@@ -88,7 +89,12 @@ func Argon2IDPasswordVerify(hash, plain string) error {
 		return err
 	}
 
-	hashToCompare := argon2.IDKey([]byte(plain), salt, time, memory, threads, uint32(len(decodedHash)))
+	hashLen := len(decodedHash)
+	if hashLen > math.MaxUint32 {
+		return fmt.Errorf("invalid decoded hash length %d, exceeds max value for uint32", hashLen)
+	}
+
+	hashToCompare := argon2.IDKey([]byte(plain), salt, time, memory, threads, uint32(hashLen))
 	if subtle.ConstantTimeCompare(decodedHash, hashToCompare) != 1 {
 		return errors.New("hashedPassword is not the hash of the given password")
 	}

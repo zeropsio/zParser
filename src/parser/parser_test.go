@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/zeropsio/zParser/v2/src/metaError"
@@ -259,6 +260,72 @@ func TestImportParser_Parse(t *testing.T) {
 			name:   "get custom var",
 			fields: getFields(1024, 2, MultilinePreserved, `<@setVar(<name>, <my completely custom string>)>|<@getVar(name)>`),
 			want:   wantStaticString(`my completely custom string|my completely custom string`),
+		},
+		{
+			name:   "generate JWT",
+			fields: getFields(1024, 1, MultilinePreserved, `<@generateJWT(<jwtTokenSecretKey>, <{"role":"test","exp":1799535600}>)>`),
+			want: func(s string) error {
+				now := time.Now()
+
+				token, err := jwt.Parse(s, func(token *jwt.Token) (interface{}, error) {
+					return []byte("jwtTokenSecretKey"), nil
+				})
+				if err != nil {
+					return err
+				}
+
+				iss, err := token.Claims.GetIssuer()
+				if err != nil {
+					return err
+				}
+				if iss != "zerops" {
+					return fmt.Errorf("expected issuer to be zerops, received: %s", iss)
+				}
+
+				iat, err := token.Claims.GetIssuedAt()
+				if err != nil {
+					return err
+				}
+				if now.Sub(iat.Time).Seconds() > 1 {
+					return fmt.Errorf("expected issued date to be within 1 second of now, %s vs %s", now.String(), iat.Time.String())
+				}
+
+				exp, err := token.Claims.GetExpirationTime()
+				if err != nil {
+					return err
+				}
+				if exp.Unix() != 1799535600 {
+					return fmt.Errorf("expected expiry to be 1799535600, received: %v", exp.Unix())
+				}
+
+				claims, _ := token.Claims.(jwt.MapClaims)
+				if claims["role"] != "test" {
+					return fmt.Errorf("expected role to be test, received: %v", claims["role"])
+				}
+
+				return nil
+			},
+		},
+		{
+			name:   "generate JWT with different issuer",
+			fields: getFields(1024, 1, MultilinePreserved, `<@generateJWT(<jwtTokenSecretKey>, <{"role":"test","iss":"test","exp":1799535600}>)>`),
+			want: func(s string) error {
+				token, err := jwt.Parse(s, func(token *jwt.Token) (interface{}, error) {
+					return []byte("jwtTokenSecretKey"), nil
+				})
+				if err != nil {
+					return err
+				}
+
+				iss, err := token.Claims.GetIssuer()
+				if err != nil {
+					return err
+				}
+				if iss != "test" {
+					return fmt.Errorf("expected issuer to be test, received: %s", iss)
+				}
+				return nil
+			},
 		},
 		{
 			name:   "multi line output preserve",

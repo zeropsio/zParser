@@ -1,6 +1,6 @@
 .PHONY: buildAll buildLinux buildLinux386 buildLinuxAmd64 buildMac buildMacAmd64 buildMacArm64 buildWindows installLint fmt lint lintFix test exampleStdout example
 
-all: fmt lint test
+all: tidy fmt lint test
 
 buildAll: buildLinux buildWindows buildMac
 
@@ -23,7 +23,10 @@ buildLinux: buildLinuxAmd64 buildLinux386
 buildMac: buildMacAmd64 buildMacArm64
 
 installLint:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.58.1
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.61.0
+
+tidy:
+	go mod tidy
 
 fmt:
 	gofmt -s -w ./src/. ./cmd/.

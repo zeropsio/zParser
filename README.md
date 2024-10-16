@@ -320,9 +320,11 @@ When error occurs, binary returns a formatted error to the output
 <summary>Example</summary>
 
 ```yaml
-  ...
-  ...
+  #...
+  #...
   MERCURY_RETROGRADE: "<@mercuryInRetrograde(<mercury is in retrograde>, <mercury is not in retrograde>, <my third unexpected param>) | title>"
+  #...
+  #...
 ```
 
 ```text
@@ -343,20 +345,21 @@ positionNear: e>
 
 ## Supported functions
 
-| name                    | description                                                                      | example                                        |
-|-------------------------|----------------------------------------------------------------------------------|------------------------------------------------|
-| generateRandomString    | generates random string in requested length                                      | `<@generateRandomString(<50>)>`                |
-| generateRandomBytes     | generates requested amount of cryptographically random bytes                     | `<@generateRandomBytes(<50>)>`                 |
-| generateRandomInt       | generates random in int range [min, max]                                         | `<@generateRandomInt(<-999>, <999>)>`          |
-| pickRandom              | selects one of the provided parameters at random                                 | `<@pickRandom(<one>, <two>, <three>, <four>)>` |
-| generateRandomStringVar | generates random string and stores it for later use                              | `<@generateRandomStringVar(<myName>, <50>)>`   |
-| setVar                  | stores provided content for later use                                            | `<@setVar(<myName>, <my string content>)>`     |
-| getVar                  | returns content of a stored variable                                             | `<@getVar(myName)>`                            |
-| getDateTime             | returns current date and time in specified format and a timezone                 | `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <GMT>)>` |
-| generateED25519Key      | generates Public and Private ED25519 key pairs and stores them for later use     | `<@generateED25519Key(<myEd25519Key>)>`        |
-| generateRSA2048Key      | generates Public and Private RSA 2048bit key pairs and stores them for later use | `<@generateRSA2048Key(<myRSA2048Key>)>`        |
-| generateRSA4096Key      | generates Public and Private RSA 4096bit key pairs and stores them for later use | `<@generateRSA4096Key(<myRSA4096Key>)>`        |
-| mercuryInRetrograde     | returns first parameter if Mercury IS in retrograde or second if it is not       | `<@mercuryInRetrograde(<Yes>, <No>)>`          |
+| name                    | description                                                                      | example                                                                |
+|-------------------------|----------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| generateRandomString    | generates random string in requested length                                      | `<@generateRandomString(<50>)>`                                        |
+| generateRandomBytes     | generates requested amount of cryptographically random bytes                     | `<@generateRandomBytes(<50>)>`                                         |
+| generateRandomInt       | generates random integer in range [min, max]                                     | `<@generateRandomInt(<-999>, <999>)>`                                  |
+| pickRandom              | selects one of the provided parameters at random                                 | `<@pickRandom(<one>, <two>, <three>, <four>)>`                         |
+| generateRandomStringVar | generates random string and stores it for later use                              | `<@generateRandomStringVar(<myName>, <50>)>`                           |
+| setVar                  | stores provided content for later use                                            | `<@setVar(<myName>, <my string content>)>`                             |
+| getVar                  | returns content of a stored variable                                             | `<@getVar(myName)>`                                                    |
+| getDateTime             | returns current date and time in specified format and a timezone                 | `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <GMT>)>`                         |
+| generateJWT             | Generates JWT signed by `HS256` algorithm using provided secret and payload.     | `<@generateJWT(<mySecretString>, <{"role":"test","exp":1798761600}>)>` |
+| generateED25519Key      | generates Public and Private ED25519 key pairs and stores them for later use     | `<@generateED25519Key(<myEd25519Key>)>`                                |
+| generateRSA2048Key      | generates Public and Private RSA 2048bit key pairs and stores them for later use | `<@generateRSA2048Key(<myRSA2048Key>)>`                                |
+| generateRSA4096Key      | generates Public and Private RSA 4096bit key pairs and stores them for later use | `<@generateRSA4096Key(<myRSA4096Key>)>`                                |
+| mercuryInRetrograde     | returns first parameter if Mercury IS in retrograde or second if it is not       | `<@mercuryInRetrograde(<Yes>, <No>)>`                                  |
 
 ---
 
@@ -366,6 +369,7 @@ Generates random string, comprised of `[a-zA-Z0-9_-.]` character set, in request
 <details>
 
 #### Info
+
 It is preferred to use `generateRandomBytes` with `toString` modifier: `<@generateRandomBytes(length) | toString>`.
 
 #### Parameters
@@ -578,6 +582,35 @@ Returns current date and time in specified format.
 | `<@getDatetime(<DD.MM.YYYY HH:mm:ss>)>`                  | 03.11.2022 12:32:35 |
 | `<@getDatetime(<DD.MM.YYYY HH:mm:ss>, <Europe/Prague>)>` | 03.11.2022 13:32:35 |
 | `<@getDatetime(<DD.MM.YYYY>)>`                           | 03.11.2022          |
+
+</details>
+
+---
+
+### `generateJWT(tokenSecret, jsonPayload)`
+
+Generates JWT (JSON Web Token) signed by `HS256` algorithm using provided secret and payload.
+
+Payload MUST be a valid JSON value.
+
+Default values for `iss` and `iat` are set to `zerops` and current timestamp respectively.
+<details>
+
+#### Parameters
+
+| name        | type     | description                            |
+|-------------|----------|----------------------------------------|
+| tokenSecret | `string` | secret used to sign your JWT           |
+| jsonPayload | `string` | payload part of the JWT in JSON format |
+
+#### Example
+
+| input                                                                                                  | output                                                                                                                                                                  |
+|--------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `<@generateJWT(<fixedSecretString>, <{"role":"test","exp":1798761600}>)>`                              | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTg3NjE2MDAsImlhdCI6MTcyOTA2OTYzMiwiaXNzIjoiemVyb3BzIiwicm9sZSI6InRlc3QifQ.2ba5vp9irnTabfTR1Co8Hd2LY8JfdC473Bb5k7yR-zQ |
+| `<@generateJWT(<fixedSecretString>, <{}>)>`                                                            | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjkwNjk4NTcsImlzcyI6Inplcm9wcyJ9.xPrqHDtGhK5c7WMJliguwBeKI29qzAoD7KXrtACbjio                                           |
+| `<@generateJWT(<@generateRandomStringVar(<jwtSecretKey>, <32>)>, <{"role":"test","exp":1798761600}>)>` | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTg3NjE2MDAsImlhdCI6MTcyOTA2OTYzMiwiaXNzIjoiemVyb3BzIiwicm9sZSI6InRlc3QifQ.ksbck_HQv44YXbqJk6lDrGFYTq3nmLydFIe0Xlejk5Q |
+| `<@generateJWT(<@getVar(jwtSecretKeyVar)>, <{"role":"test","exp":1798761600}>)>`                       | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTg3NjE2MDAsImlhdCI6MTcyOTA2OTYzMiwiaXNzIjoiemVyb3BzIiwicm9sZSI6InRlc3QifQ.O0RaXzGFwj2t8P2kc4nU4PfuI43-dAuAl2d0T1uUlEE |
 
 </details>
 
